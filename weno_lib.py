@@ -22,24 +22,24 @@ def weno_ao_3_interpolation(u, dx, boundary_mode='wrap'):
     u_2  = U_pad[4:]
     
     # Left-biased stencil S1 (Eq 17)
-    pt1 = (25.0*u_0 - 2.0*u_m1 + u_m2) / 24.0
-    x1_ = (3.0*u_0 - 4.0*u_m1 + u_m2) / 2.0
-    x21 = (u_0 - 2.0*u_m1 + u_m2) / 2.0
+    u_pt1 = (25.0*u_0 - 2.0*u_m1 + u_m2) / 24.0
+    u_x1 = (3.0*u_0 - 4.0*u_m1 + u_m2) / 2.0
+    u_x21 = (u_0 - 2.0*u_m1 + u_m2) / 2.0
     
     # Centered stencil S2 (Eq 18)
-    pt2 = (22.0*u_0 + u_m1 + u_1) / 24.0
-    x2_ = (u_1 - u_m1) / 2.0
-    x22 = (-2.0*u_0 + u_m1 + u_1) / 2.0
+    u_pt2 = (22.0*u_0 + u_m1 + u_1) / 24.0
+    u_x2 = (u_1 - u_m1) / 2.0
+    u_x22 = (-2.0*u_0 + u_m1 + u_1) / 2.0
     
     # Right-biased stencil S3 (Eq 19)
-    pt3 = (25.0*u_0 - 2.0*u_1 + u_2) / 24.0
-    x3_ = (-3.0*u_0 + 4.0*u_1 - u_2) / 2.0
-    x23 = (u_0 - 2.0*u_1 + u_2) / 2.0
+    u_pt3 = (25.0*u_0 - 2.0*u_1 + u_2) / 24.0
+    u_x3 = (-3.0*u_0 + 4.0*u_1 - u_2) / 2.0
+    u_x23 = (u_0 - 2.0*u_1 + u_2) / 2.0
     
     # Smoothness indicators (Eq 20)
-    beta1 = x1_**2 + (13.0/3.0)*x21**2
-    beta2 = x2_**2 + (13.0/3.0)*x22**2
-    beta3 = x3_**2 + (13.0/3.0)*x23**2
+    beta1 = u_x1**2 + (13.0/3.0)*u_x21**2
+    beta2 = u_x2**2 + (13.0/3.0)*u_x22**2
+    beta3 = u_x3**2 + (13.0/3.0)*u_x23**2
     
     # Linear weights (Eq 21), using typical gamma_Lo = 0.85
     gamma_lo = 0.85
@@ -64,19 +64,19 @@ def weno_ao_3_interpolation(u, dx, boundary_mode='wrap'):
     # P(x) = u_pt + u_x * L1(x) + u_x2 * L2(x)
     # At x = 1/2: L1=1/2, L2=1/6
     # At x =-1/2: L1=-1/2, L2=1/6
-    P1_R = pt1 + x1_*0.5 + x21*(1.0/6.0)
-    P2_R = pt2 + x2_*0.5 + x22*(1.0/6.0)
-    P3_R = pt3 + x3_*0.5 + x23*(1.0/6.0)
+    P1_R = u_pt1 + u_x1*0.5 + u_x21*(1.0/6.0)
+    P2_R = u_pt2 + u_x2*0.5 + u_x22*(1.0/6.0)
+    P3_R = u_pt3 + u_x3*0.5 + u_x23*(1.0/6.0)
     
-    P1_L = pt1 - x1_*0.5 + x21*(1.0/6.0)
-    P2_L = pt2 - x2_*0.5 + x22*(1.0/6.0)
-    P3_L = pt3 - x3_*0.5 + x23*(1.0/6.0)
+    P1_L = u_pt1 - u_x1*0.5 + u_x21*(1.0/6.0)
+    P2_L = u_pt2 - u_x2*0.5 + u_x22*(1.0/6.0)
+    P3_L = u_pt3 - u_x3*0.5 + u_x23*(1.0/6.0)
     
     U_R_eval = wb1*P1_R + wb2*P2_R + wb3*P3_R
     U_L_eval = wb1*P1_L + wb2*P2_L + wb3*P3_L
     
     # Final derivative scaled by dx
-    dUdx = (wb1*x1_ + wb2*x2_ + wb3*x3_) / dx
+    dUdx = (wb1*u_x1 + wb2*u_x2 + wb3*u_x3) / dx
     
     return U_L_eval, U_R_eval, dUdx
 
