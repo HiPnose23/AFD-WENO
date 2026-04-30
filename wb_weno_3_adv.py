@@ -14,7 +14,7 @@ x = np.linspace(-1.0, 1.0, nx, endpoint=False)
 dx = x[1] - x[0]
 
 # ---------------------------------------------------------
-# 2. Well-Balanced Components (Xing-Shu Framework)
+# 2. Well-Balanced Components
 # ---------------------------------------------------------
 # Exact equilibrium state: E(x) = exp((lam/c) * x)
 # We evaluate this at cell centers and cell faces.
@@ -60,7 +60,7 @@ def compute_wb_flux(u):
     F_num = F_star - (dx**2 / 24.0) * d1dx
     return F_num
 
-# Precompute the numerical flux for the exact equilibrium state ONCE
+# Precompute the numerical flux for the exact equilibrium state 
 F_eq = compute_wb_flux(E_center)
 
 def get_wb_afd_weno_rhs(u):
@@ -87,10 +87,7 @@ def get_wb_afd_weno_rhs(u):
 u = E_center.copy() 
 u_init = u.copy()
 
-# ---- VERIFICATION FOR THESIS ----
-# If the scheme is well-balanced, dudt should be exactly zero.
-# Note: Because the domain is periodic but the exponential is not, there is an 
-# artificial shock at the boundary (index 0). We ignore cell 0 to check the interior.
+
 initial_dudt = get_wb_afd_weno_rhs(u)
 print(f"Max RHS error in interior at t=0: {np.max(np.abs(initial_dudt[1:])):.3e}")
 # ---------------------------------
@@ -108,9 +105,7 @@ while t < t_end:
     
     t += dt
 
-# ---------------------------------------------------------
-# 4. Plot results
-# ---------------------------------------------------------
+
 plt.figure(figsize=(8, 5))
 plt.plot(x, u_init, '--', label='Exact Equilibrium (t=0)', color='gray', linewidth=2)
 plt.plot(x, u, '-', label=f'WB-AFD-WENO (t={t_end})', color='blue')

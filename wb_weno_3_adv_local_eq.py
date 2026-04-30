@@ -19,7 +19,7 @@ E_face = np.exp((lam / c_speed) * x_face)
 E_prime_center = (lam / c_speed) * E_center
 
 # =========================================================
-# 2. Well-Balanced Flux Function (Strictly 3rd Order)
+# 2. Well-Balanced Flux Function 
 # =========================================================
 def compute_wb_flux(u):
     """Computes the 3rd-order AFD-WENO flux using equilibrium variables."""
@@ -50,7 +50,7 @@ def compute_wb_flux(u):
     return F_num
 
 # =========================================================
-# 3. Local Equilibrium RHS (The "What If?" Approach)
+# 3. Local Equilibrium RHS 
 # =========================================================
 def get_rhs_local_equilibrium(u):
     """
@@ -69,7 +69,6 @@ def get_rhs_local_equilibrium(u):
         w_local = u[i] / E_center[i]
         
         # Step B: Build the "imaginary perfect world" matching cell i
-        # This creates an array over the entire domain!
         u_eq_local = w_local * E_center
         
         # Step C: Pass this imaginary world through the exact flux solver
@@ -77,7 +76,6 @@ def get_rhs_local_equilibrium(u):
         
         # Step D: Define the source term for cell i as the flux gradient 
         # of this imaginary world exactly across cell i.
-        # Note: F[i] is face i+1/2, F[i-1] is face i-1/2 (Python handles i-1=-1 cleanly)
         S_discrete[i] = (F_num_imaginary[i] - F_num_imaginary[i-1]) / dx
         
     # 3. Final RHS
@@ -115,10 +113,6 @@ else:
 u = E_center.copy() 
 u_init = u.copy()
 
-# ---- VERIFICATION FOR THESIS ----
-# If the scheme is well-balanced, dudt should be exactly zero.
-# Note: Because the domain is periodic but the exponential is not, there is an 
-# artificial shock at the boundary (index 0). We ignore cell 0 to check the interior.
 initial_dudt = get_rhs_local_equilibrium(u)
 print(f"Max RHS error in interior at t=0: {np.max(np.abs(initial_dudt[1:])):.3e}")
 # ---------------------------------
@@ -136,9 +130,6 @@ while t < t_end:
     t += dt
 
 
-# ---------------------------------------------------------
-# 4. Plot results
-# ---------------------------------------------------------
 plt.figure(figsize=(8, 5))
 plt.plot(x, u_init, '--', label='Exact Equilibrium (t=0)', color='gray', linewidth=2)
 plt.plot(x, u, '-', label=f'WB-AFD-WENO (t={t_end})', color='blue')
