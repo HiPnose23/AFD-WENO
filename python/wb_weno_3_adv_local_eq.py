@@ -39,7 +39,7 @@ def compute_wb_flux(u):
     # Upwind Riemann Flux
     F_star = c_speed * u_L_face if c_speed >= 0 else c_speed * u_R_face
         
-    # f = A * dudxget_wb_afd_weno_rhs(u)
+    # f = A * dudx
     f_centers = c_speed * dudx_center
     
     # Boundary derivative of f
