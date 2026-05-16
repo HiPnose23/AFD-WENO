@@ -139,25 +139,99 @@ std::vector<double> get_rhs_local_equilibrium_3D(const std::vector<double>& u)
             for (int i = 0; i < N; ++i) {
                 int c = idx(i,j,k);
                 
-                double w_local = u[c] / E_center[c];
-
-                for (int n = 0; n < total_cells; ++n) {
-                    u_eq_local[n] = w_local * E_center[n];
-                }
-
-
-                compute_wb_flux_3D(u_eq_local, fx_im, fy_im, fz_im);
-
-
-                double Sx = (fx_im[c] - fx_im[idx(i-1,j,k)]) / dx;
-                double Sy = (fy_im[c] - fy_im[idx(i,j-1,k)]) / dy;
-                double Sz = (fz_im[c] - fz_im[idx(i,j,k-1)]) / dz;
-
                 // Actual divergence
                 double dFdx_act = (fx_act[c] - fx_act[idx(i-1,j,k)]) / dx;
                 double dFdy_act = (fy_act[c] - fy_act[idx(i,j-1,k)]) / dy;
                 double dFdz_act = (fz_act[c] - fz_act[idx(i,j,k-1)]) / dz;
 
+                // ----------------------------------------------------
+                // TRUE A-WENO SOURCE TERM (Skipping WENO!)
+                // ----------------------------------------------------
+                double w_j = u[c] / E_center[c];
+                
+                // We evaluate the algebraic stencils directly 
+                // at the right face (i+1/2) and left face (i-1/2)
+                // X direction 
+                // Right face (i+1/2)
+                double f_eq_x_R = cx * w_j * E_face_x[c]; // Trivial Riemann solver
+                double d2f_x_R = (
+                    - (5.0/48.0)  * cx * w_j * E_center[idx(i-2,j,k)]
+                    + (13.0/16.0) * cx * w_j * E_center[idx(i-1,j,k)]
+                    - (17.0/24.0) * cx * w_j * E_center[c]
+                    - (17.0/24.0) * cx * w_j * E_center[idx(i+1,j,k)]
+                    + (13.0/16.0) * cx * w_j * E_center[idx(i+2,j,k)]
+                    - (5.0/48.0)  * cx * w_j * E_center[idx(i+3,j,k)]
+                ) / (dx*dx);
+                double F_eq_x_R = f_eq_x_R - (dx*dx / 24.0) * d2f_x_R;
+
+                // Left face (i-1/2)
+                double f_eq_x_L = cx * w_j * E_face_x[idx(i-1,j,k)]; 
+                double d2f_x_L = (
+                    - (5.0/48.0)  * cx * w_j * E_center[idx(i-3,j,k)]
+                    + (13.0/16.0) * cx * w_j * E_center[idx(i-2,j,k)]
+                    - (17.0/24.0) * cx * w_j * E_center[idx(i-1,j,k)]
+                    - (17.0/24.0) * cx * w_j * E_center[c]
+                    + (13.0/16.0) * cx * w_j * E_center[idx(i+1,j,k)]
+                    - (5.0/48.0)  * cx * w_j * E_center[idx(i+2,j,k)]
+                ) / (dx*dx);
+                double F_eq_x_L = f_eq_x_L - (dx*dx / 24.0) * d2f_x_L;
+                
+                double Sx = (F_eq_x_R - F_eq_x_L) / dx;
+
+                // (Repeat identical algebraic logic for Sy and Sz)
+                // Y direction
+                // Right face (j+1/2)
+                double f_eq_y_R = cy * w_j * E_face_y[c]; 
+                double d2f_y_R = (
+                    - (5.0/48.0)  * cy * w_j * E_center[idx(i,j-2,k)]
+                    + (13.0/16.0) * cy * w_j * E_center[idx(i,j-1,k)]
+                    - (17.0/24.0) * cy * w_j * E_center[c]
+                    - (17.0/24.0) * cy * w_j * E_center[idx(i,j+1,k)]
+                    + (13.0/16.0) * cy * w_j * E_center[idx(i,j+2,k)]
+                    - (5.0/48.0)  * cy * w_j * E_center[idx(i,j+3,k)]
+                ) / (dy*dy);
+                double F_eq_y_R = f_eq_y_R - (dy*dy / 24.0) * d2f_y_R;
+
+                // Left face (j-1/2)
+                double f_eq_y_L = cy * w_j * E_face_y[idx(i,j-1,k)]; 
+                double d2f_y_L = (
+                    - (5.0/48.0)  * cy * w_j * E_center[idx(i,j-3,k)]
+                    + (13.0/16.0) * cy * w_j * E_center[idx(i,j-2,k)]
+                    - (17.0/24.0) * cy * w_j * E_center[idx(i,j-1,k)]
+                    - (17.0/24.0) * cy * w_j * E_center[c]
+                    + (13.0/16.0) * cy * w_j * E_center[idx(i,j+1,k)]
+                    - (5.0/48.0)  * cy * w_j * E_center[idx(i,j+2,k)]
+                ) / (dy*dy);
+                double F_eq_y_L = f_eq_y_L - (dy*dy / 24.0) * d2f_y_L;
+                
+                double Sy = (F_eq_y_R - F_eq_y_L) / dy;
+
+                // Z direction
+                // Right face (k+1/2)
+                double f_eq_z_R = cz * w_j * E_face_z[c]; 
+                double d2f_z_R = (
+                    - (5.0/48.0)  * cz * w_j * E_center[idx(i,j,k-2)]
+                    + (13.0/16.0) * cz * w_j * E_center[idx(i,j,k-1)]
+                    - (17.0/24.0) * cz * w_j * E_center[c]
+                    - (17.0/24.0) * cz * w_j * E_center[idx(i,j,k+1)]
+                    + (13.0/16.0) * cz * w_j * E_center[idx(i,j,k+2)]
+                    - (5.0/48.0)  * cz * w_j * E_center[idx(i,j,k+3)]
+                ) / (dz*dz);
+                double F_eq_z_R = f_eq_z_R - (dz*dz / 24.0) * d2f_z_R;
+
+                // Left face (k-1/2)
+                double f_eq_z_L = cz * w_j * E_face_z[idx(i,j,k-1)]; 
+                double d2f_z_L = (
+                    - (5.0/48.0)  * cz * w_j * E_center[idx(i,j,k-3)]
+                    + (13.0/16.0) * cz * w_j * E_center[idx(i,j,k-2)]
+                    - (17.0/24.0) * cz * w_j * E_center[idx(i,j,k-1)]
+                    - (17.0/24.0) * cz * w_j * E_center[c]
+                    + (13.0/16.0) * cz * w_j * E_center[idx(i,j,k+1)]
+                    - (5.0/48.0)  * cz * w_j * E_center[idx(i,j,k+2)]
+                ) / (dz*dz);
+                double F_eq_z_L = f_eq_z_L - (dz*dz / 24.0) * d2f_z_L;
+                
+                double Sz = (F_eq_z_R - F_eq_z_L) / dz;
 
                 dudt[c] = -(dFdx_act + dFdy_act + dFdz_act) + (Sx + Sy + Sz);
             }
