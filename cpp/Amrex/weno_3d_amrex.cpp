@@ -9,6 +9,7 @@
 #include <AMReX_MultiFab.H>
 #include <AMReX_Array.H>
 #include <AMReX_ParallelDescriptor.H>
+#include <AMReX_PlotFileUtil.H>
 
 #include "../weno_lib.hpp"
 
@@ -25,236 +26,177 @@ inline double get_x(int i) { return -1.0 + (i + 0.5) * dx; }
 inline double get_y(int j) { return -1.0 + (j + 0.5) * dy; }
 inline double get_z(int k) { return -1.0 + (k + 0.5) * dz; }
 
-// Global Pointers for AMReX states
+// Global Pointers for AMReX states 
 amrex::MultiFab* E_center; // ncomp = 1
 amrex::MultiFab* E_face;   // ncomp = 3 (0=X, 1=Y, 2=Z)
-amrex::MultiFab* E_prime;  // ncomp = 3 (0=X, 1=Y, 2=Z)
 
 void initialize_equilibrium_arrays(const amrex::Geometry& geom) {
+    const double pi = std::acos(-1.0);
+
     for (amrex::MFIter mfi(*E_center); mfi.isValid(); ++mfi) {
         const amrex::Box& bx = mfi.tilebox(); 
         
         auto const& Ec  = E_center->array(mfi);
         auto const& Ef  = E_face->array(mfi);
-        auto const& Ep  = E_prime->array(mfi);
 
         amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE(int i, int j, int k) {
             double x = get_x(i), y = get_y(j), z = get_z(k);
             
-            Ec(i,j,k) = std::exp((lam / 3.0) * (x/cx + y/cy + z/cz));
+            // Center Value (Periodic Sine Wave Equilibrium)
+            Ec(i,j,k) = std::exp(lam * (std::sin(pi * x) + std::sin(pi * y) + std::sin(pi * z)));
             
-            // X-component (n=0)
-            Ef(i,j,k,0) = std::exp((lam / 3.0) * ((x+0.5*dx)/cx + y/cy + z/cz));
-            Ep(i,j,k,0) = (lam / (3.0 * cx)) * Ec(i,j,k);
+            // X-Face (n=0)
+            double x_f = x + 0.5 * dx;
+            Ef(i,j,k,0) = std::exp(lam * (std::sin(pi * x_f) + std::sin(pi * y) + std::sin(pi * z)));
             
-            // Y-component (n=1)
-            Ef(i,j,k,1) = std::exp((lam / 3.0) * (x/cx + (y+0.5*dy)/cy + z/cz));
-            Ep(i,j,k,1) = (lam / (3.0 * cy)) * Ec(i,j,k);
+            // Y-Face (n=1)
+            double y_f = y + 0.5 * dy;
+            Ef(i,j,k,1) = std::exp(lam * (std::sin(pi * x) + std::sin(pi * y_f) + std::sin(pi * z)));
             
-            // Z-component (n=2)
-            Ef(i,j,k,2) = std::exp((lam / 3.0) * (x/cx + y/cy + (z+0.5*dz)/cz));
-            Ep(i,j,k,2) = (lam / (3.0 * cz)) * Ec(i,j,k);
+            // Z-Face (n=2)
+            double z_f = z + 0.5 * dz;
+            Ef(i,j,k,2) = std::exp(lam * (std::sin(pi * x) + std::sin(pi * y) + std::sin(pi * z_f)));
         });
     }
     
-
+    // Fill the periodic ghost cells natively via AMReX
     E_center->FillBoundary(geom.periodicity());
     E_face->FillBoundary(geom.periodicity());  
-    E_prime->FillBoundary(geom.periodicity()); 
 }
 
 // =========================================================
-// 2. Well-Balanced 3D Flux Function
+// 2. Unified A-WENO Flux Function (Eq. 2.6 & 2.7 from Paper)
 // =========================================================
 void compute_wb_flux_3D(const amrex::MultiFab& u, amrex::MultiFab& flux, const amrex::Geometry& geom) {
-    // Intermediate temporary arrays (ncomp = 3)
-    amrex::MultiFab F_star(u.boxArray(), u.DistributionMap(), 3, 0); 
-    amrex::MultiFab fc(u.boxArray(), u.DistributionMap(), 3, 2);
-
-    //  WENO-AO(3) Interpolation
     for (amrex::MFIter mfi(u); mfi.isValid(); ++mfi) {
-        const amrex::Box& bx = mfi.tilebox();
+        const amrex::Box& bx = mfi.validbox(); 
         
         auto const& u_arr = u.const_array(mfi);
         auto const& Ec  = E_center->const_array(mfi);
         auto const& Ef  = E_face->const_array(mfi); 
-        auto const& Ep  = E_prime->const_array(mfi); 
-
-        auto const& Fs  = F_star.array(mfi); 
-        auto const& f_c = fc.array(mfi);
+        auto const& flx = flux.array(mfi);
 
         amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE(int i, int j, int k) {
             double w_L, w_R, dwdx;
 
-            // X-Direction (n=0)
+            // --- X-Direction Face Flux ---
             weno_ao_3_interpolation(
                 u_arr(i-2,j,k)/Ec(i-2,j,k), u_arr(i-1,j,k)/Ec(i-1,j,k),
                 u_arr(i,j,k)/Ec(i,j,k), u_arr(i+1,j,k)/Ec(i+1,j,k), u_arr(i+2,j,k)/Ec(i+2,j,k),
                 dx, w_L, w_R, dwdx);
-            Fs(i,j,k,0)  = cx * w_R * Ef(i,j,k,0);
-            f_c(i,j,k,0) = cx * (dwdx * Ec(i,j,k) + (u_arr(i,j,k)/Ec(i,j,k)) * Ep(i,j,k,0));
+            
+            double h_x = cx * w_R * Ef(i,j,k,0); // Physical Upwind Flux
+            
+            // 6-point high-order correction applied directly to the cell-centered physical flux
+            double d2f_x = (
+                - (5.0/48.0)  * cx * u_arr(i-2,j,k)
+                + (13.0/16.0) * cx * u_arr(i-1,j,k)
+                - (17.0/24.0) * cx * u_arr(i,j,k)
+                - (17.0/24.0) * cx * u_arr(i+1,j,k)
+                + (13.0/16.0) * cx * u_arr(i+2,j,k)
+                - (5.0/48.0)  * cx * u_arr(i+3,j,k)) / (dx*dx);
+            
+            flx(i,j,k,0) = h_x - (dx*dx/24.0) * d2f_x;
 
-            // Y-Direction (n=1)
+            // --- Y-Direction Face Flux ---
             weno_ao_3_interpolation(
                 u_arr(i,j-2,k)/Ec(i,j-2,k), u_arr(i,j-1,k)/Ec(i,j-1,k),
                 u_arr(i,j,k)/Ec(i,j,k), u_arr(i,j+1,k)/Ec(i,j+1,k), u_arr(i,j+2,k)/Ec(i,j+2,k),
                 dy, w_L, w_R, dwdx);
-            Fs(i,j,k,1)  = cy * w_R * Ef(i,j,k,1);
-            f_c(i,j,k,1) = cy * (dwdx * Ec(i,j,k) + (u_arr(i,j,k)/Ec(i,j,k)) * Ep(i,j,k,1));
+            
+            double h_y = cy * w_R * Ef(i,j,k,1);
+            double d2f_y = (
+                - (5.0/48.0)  * cy * u_arr(i,j-2,k)
+                + (13.0/16.0) * cy * u_arr(i,j-1,k)
+                - (17.0/24.0) * cy * u_arr(i,j,k)
+                - (17.0/24.0) * cy * u_arr(i,j+1,k)
+                + (13.0/16.0) * cy * u_arr(i,j+2,k)
+                - (5.0/48.0)  * cy * u_arr(i,j+3,k)) / (dy*dy);
+                
+            flx(i,j,k,1) = h_y - (dy*dy/24.0) * d2f_y;
 
-            // Z-Direction (n=2)
+            // --- Z-Direction Face Flux ---
             weno_ao_3_interpolation(
                 u_arr(i,j,k-2)/Ec(i,j,k-2), u_arr(i,j,k-1)/Ec(i,j,k-1),
                 u_arr(i,j,k)/Ec(i,j,k), u_arr(i,j,k+1)/Ec(i,j,k+1), u_arr(i,j,k+2)/Ec(i,j,k+2),
                 dz, w_L, w_R, dwdx);
-            Fs(i,j,k,2)  = cz * w_R * Ef(i,j,k,2);
-            f_c(i,j,k,2) = cz * (dwdx * Ec(i,j,k) + (u_arr(i,j,k)/Ec(i,j,k)) * Ep(i,j,k,2));
+            
+            double h_z = cz * w_R * Ef(i,j,k,2);
+            double d2f_z = (
+                - (5.0/48.0)  * cz * u_arr(i,j,k-2)
+                + (13.0/16.0) * cz * u_arr(i,j,k-1)
+                - (17.0/24.0) * cz * u_arr(i,j,k)
+                - (17.0/24.0) * cz * u_arr(i,j,k+1)
+                + (13.0/16.0) * cz * u_arr(i,j,k+2)
+                - (5.0/48.0)  * cz * u_arr(i,j,k+3)) / (dz*dz);
+                
+            flx(i,j,k,2) = h_z - (dz*dz/24.0) * d2f_z;
         });
     }
-
-    // Pass boundary info for all 3 axes at once
-    fc.FillBoundary(geom.periodicity());
-
-    // Boundary Correction
-    for (amrex::MFIter mfi(u); mfi.isValid(); ++mfi) {
-        const amrex::Box& bx = mfi.tilebox();
-        
-        auto const& f_c = fc.const_array(mfi);
-        auto const& Fs  = F_star.const_array(mfi);
-        auto const& flx = flux.array(mfi);
-
-        amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE(int i, int j, int k) {
-            double d1dx, d3dx;
-
-            // X-correction
-            weno_ao_43_boundary(f_c(i-1,j,k,0), f_c(i,j,k,0), f_c(i+1,j,k,0), f_c(i+2,j,k,0), dx, d1dx, d3dx);
-            flx(i,j,k,0) = Fs(i,j,k,0) - (dx*dx/24.0) * d1dx;
-
-            // Y-correction
-            weno_ao_43_boundary(f_c(i,j-1,k,1), f_c(i,j,k,1), f_c(i,j+1,k,1), f_c(i,j+2,k,1), dy, d1dx, d3dx);
-            flx(i,j,k,1) = Fs(i,j,k,1) - (dy*dy/24.0) * d1dx;
-
-            // Z-correction
-            weno_ao_43_boundary(f_c(i,j,k-1,2), f_c(i,j,k,2), f_c(i,j,k+1,2), f_c(i,j,k+2,2), dz, d1dx, d3dx);
-            flx(i,j,k,2) = Fs(i,j,k,2) - (dz*dz/24.0) * d1dx;
-        });
-    }
-
-    // Exchange all physical fluxes simultaneously 
+    
+    // Fill boundaries so divergence calculation can access cell i-1
     flux.FillBoundary(geom.periodicity());
 }
 
 // =========================================================
-// 3. Local Equilibrium RHS 
+// 3. RHS Assembly with Generalized Source Scaling 
 // =========================================================
-void get_rhs_local_equilibrium_3D(const amrex::MultiFab& u, amrex::MultiFab& dudt, const amrex::Geometry& geom) {
-    // Actual Physical Fluxes (Allocated with 1 ghost cell for divergence)
+void get_rhs_local_equilibrium_3D(const amrex::MultiFab& u, amrex::MultiFab& Rhs, const amrex::Geometry& geom) {
+    // 1. Calculate Actual Numerical Fluxes: F_num(u)
     amrex::MultiFab flux_act(u.boxArray(), u.DistributionMap(), 3, 1);
     compute_wb_flux_3D(u, flux_act, geom);
 
+    // 2. Calculate Reference Equilibrium Numerical Fluxes: F_num(u_{e,loc})
+    amrex::MultiFab flux_eq(u.boxArray(), u.DistributionMap(), 3, 1);
+    compute_wb_flux_3D(*E_center, flux_eq, geom);
+
     for (amrex::MFIter mfi(u); mfi.isValid(); ++mfi) {
-        const amrex::Box& bx = mfi.tilebox();
+        const amrex::Box& bx = mfi.validbox();
         
-        auto const& flx = flux_act.const_array(mfi); 
+        auto const& f_act = flux_act.const_array(mfi); 
+        auto const& f_eq  = flux_eq.const_array(mfi);
         auto const& u_arr = u.const_array(mfi);
-        auto const& Ec = E_center->const_array(mfi);
-        auto const& Ef = E_face->const_array(mfi); 
-        
-        auto const& rhs = dudt.array(mfi);
+        auto const& Ec    = E_center->const_array(mfi);
+        auto const& rhs   = Rhs.array(mfi);
 
         amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE(int i, int j, int k) {
             
-            // Actual divergence
-            double dFdx_act = (flx(i,j,k,0) - flx(i-1,j,k,0)) / dx;
-            double dFdy_act = (flx(i,j,k,1) - flx(i,j-1,k,1)) / dy;
-            double dFdz_act = (flx(i,j,k,2) - flx(i,j,k-1,2)) / dz;
+            // Actual Flux Divergence
+            double dFdx_act = (f_act(i,j,k,0) - f_act(i-1,j,k,0)) / dx;
+            double dFdy_act = (f_act(i,j,k,1) - f_act(i,j-1,k,1)) / dy;
+            double dFdz_act = (f_act(i,j,k,2) - f_act(i,j,k-1,2)) / dz;
 
-            double w_j = u_arr(i,j,k) / Ec(i,j,k);
-            
-            // X direction
-            double f_eq_x_R = cx * w_j * Ef(i,j,k,0);
-            double d2f_x_R = (
-                - (5.0/48.0)  * cx * w_j * Ec(i-2,j,k) 
-                + (13.0/16.0) * cx * w_j * Ec(i-1,j,k)
-                - (17.0/24.0) * cx * w_j * Ec(i,j,k)
-                - (17.0/24.0) * cx * w_j * Ec(i+1,j,k) 
-                + (13.0/16.0) * cx * w_j * Ec(i+2,j,k)
-                - (5.0/48.0)  * cx * w_j * Ec(i+3,j,k)) 
-                / (dx*dx);
-            double F_eq_x_R = f_eq_x_R - (dx*dx / 24.0) * d2f_x_R;
+            // Numerical Divergence of the Unscaled Reference State
+            double Div_E_x = (f_eq(i,j,k,0) - f_eq(i-1,j,k,0)) / dx;
+            double Div_E_y = (f_eq(i,j,k,1) - f_eq(i,j-1,k,1)) / dy;
+            double Div_E_z = (f_eq(i,j,k,2) - f_eq(i,j,k-1,2)) / dz;
 
-            double f_eq_x_L = cx * w_j * Ef(i-1,j,k,0);
-            double d2f_x_L = (
-                - (5.0/48.0)  * cx * w_j * Ec(i-3,j,k) 
-                + (13.0/16.0) * cx * w_j * Ec(i-2,j,k) 
-                - (17.0/24.0) * cx * w_j * Ec(i-1,j,k)
-                - (17.0/24.0) * cx * w_j * Ec(i,j,k)
-                + (13.0/16.0) * cx * w_j * Ec(i+1,j,k) 
-                - (5.0/48.0)  * cx * w_j * Ec(i+2,j,k))
-                / (dx*dx);
-            double F_eq_x_L = f_eq_x_L - (dx*dx / 24.0) * d2f_x_L;
-            double Sx = (F_eq_x_R - F_eq_x_L) / dx;
+            // -------------------------------------------------------------
+            // Explicit Source Term Scaling Fraction: s(u, x) / s(u_e, x)
+            // For linear advection with s(u, x) = Div(cu), the ratio 
+            // simplifies algebraically to u_i / E(x_i), ensuring safety 
+            // against division by zero at the roots of the sine wave.
+            // -------------------------------------------------------------
+            double scaling_fraction = u_arr(i,j,k) / Ec(i,j,k);
 
-            // Y direction
-            double f_eq_y_R = cy * w_j * Ef(i,j,k,1);
-            double d2f_y_R = (
-                - (5.0/48.0)  * cy * w_j * Ec(i,j-2,k) 
-                + (13.0/16.0) * cy * w_j * Ec(i,j-1,k) 
-                - (17.0/24.0) * cy * w_j * Ec(i,j,k)
-                - (17.0/24.0) * cy * w_j * Ec(i,j+1,k) 
-                + (13.0/16.0) * cy * w_j * Ec(i,j+2,k) 
-                - (5.0/48.0)  * cy * w_j * Ec(i,j+3,k))
-                / (dy*dy);
-            double F_eq_y_R = f_eq_y_R - (dy*dy / 24.0) * d2f_y_R;
+            // S_i = [ s(u)/s(E) ] * Div( F_num(E) )
+            double Sx = scaling_fraction * Div_E_x;
+            double Sy = scaling_fraction * Div_E_y;
+            double Sz = scaling_fraction * Div_E_z;
 
-            double f_eq_y_L = cy * w_j * Ef(i,j-1,k,1);
-            double d2f_y_L = (
-                - (5.0/48.0)  * cy * w_j * Ec(i,j-3,k) 
-                + (13.0/16.0) * cy * w_j * Ec(i,j-2,k) 
-                - (17.0/24.0) * cy * w_j * Ec(i,j-1,k)
-                - (17.0/24.0) * cy * w_j * Ec(i,j,k)  
-                + (13.0/16.0) * cy * w_j * Ec(i,j+1,k)
-                - (5.0/48.0)  * cy * w_j * Ec(i,j+2,k))
-                / (dy*dy);
-            double F_eq_y_L = f_eq_y_L - (dy*dy / 24.0) * d2f_y_L;
-            double Sy = (F_eq_y_R - F_eq_y_L) / dy;
-
-            // Z direction
-            double f_eq_z_R = cz * w_j * Ef(i,j,k,2);
-            double d2f_z_R = (
-                - (5.0/48.0)  * cz * w_j * Ec(i,j,k-2) 
-                + (13.0/16.0) * cz * w_j * Ec(i,j,k-1) 
-                - (17.0/24.0) * cz * w_j * Ec(i,j,k)
-                - (17.0/24.0) * cz * w_j * Ec(i,j,k+1) 
-                + (13.0/16.0) * cz * w_j * Ec(i,j,k+2)
-                - (5.0/48.0)  * cz * w_j * Ec(i,j,k+3))
-                / (dz*dz);
-            double F_eq_z_R = f_eq_z_R - (dz*dz / 24.0) * d2f_z_R;
-
-            double f_eq_z_L = cz * w_j * Ef(i,j,k-1,2);
-            double d2f_z_L = (
-                - (5.0/48.0)  * cz * w_j * Ec(i,j,k-3) 
-                + (13.0/16.0) * cz * w_j * Ec(i,j,k-2)
-                - (17.0/24.0) * cz * w_j * Ec(i,j,k-1)
-                - (17.0/24.0) * cz * w_j * Ec(i,j,k)  
-                + (13.0/16.0) * cz * w_j * Ec(i,j,k+1)
-                - (5.0/48.0)  * cz * w_j * Ec(i,j,k+2))
-                / (dz*dz);
-            double F_eq_z_L = f_eq_z_L - (dz*dz / 24.0) * d2f_z_L;
-            double Sz = (F_eq_z_R - F_eq_z_L) / dz;
-
+            // RHS = -Div(F_act) + S_i
             rhs(i,j,k) = -(dFdx_act + dFdy_act + dFdz_act) + (Sx + Sy + Sz);
         });
     }
 }
 
 // =========================================================
-// 4. Verification Test
+// 4. Main Simulation & SSP-RK3 Time Stepping
 // =========================================================
 int main(int argc, char* argv[]) {
     amrex::Initialize(argc, argv);
     { 
-        amrex::Print() << "Initializing AMReX 3D Literal Local Equilibrium Setup...\n";
+        amrex::Print() << "Initializing AMReX A-WENO 3D SSP-RK3 Solver...\n";
         
         amrex::Box domain(amrex::IntVect(0,0,0), amrex::IntVect(N-1,N-1,N-1));
         amrex::RealBox real_box({AMREX_D_DECL(-1.0, -1.0, -1.0)}, {AMREX_D_DECL(1.0, 1.0, 1.0)});
@@ -265,50 +207,89 @@ int main(int argc, char* argv[]) {
         ba.maxSize(8); 
         amrex::DistributionMapping dm(ba);
 
-        // Allocate globals. 3 components (X,Y,Z), 3 ghost cells
+        // Allocate equilibrium globals
         E_center = new amrex::MultiFab(ba, dm, 1, 3);
         E_face   = new amrex::MultiFab(ba, dm, 3, 3); 
-        E_prime  = new amrex::MultiFab(ba, dm, 3, 3);
 
         initialize_equilibrium_arrays(geom);
 
-        // Setup the physical state u
+        // Allocate State and RK3 arrays
         amrex::MultiFab u(ba, dm, 1, 3);
-        amrex::MultiFab::Copy(u, *E_center, 0, 0, 1, 0); 
+        amrex::MultiFab u1(ba, dm, 1, 3);
+        amrex::MultiFab u2(ba, dm, 1, 3);
+        amrex::MultiFab rhs(ba, dm, 1, 0);
+
+        // Set Initial Condition
+        amrex::MultiFab::Copy(u, *E_center, 0, 0, 1, 3); 
         u.FillBoundary(geom.periodicity()); 
 
-        // Evaluate RHS
-        amrex::MultiFab rhs(ba, dm, 1, 0); 
-        get_rhs_local_equilibrium_3D(u, rhs, geom);
+        double t = 0.0;
+        double t_end = 1.0;
+        double CFL = 0.4;
+        double c_speed = std::max({std::abs(cx), std::abs(cy), std::abs(cz)});
 
-        // Track max error
-        double max_err = 0.0;
-        amrex::Box interior_box(amrex::IntVect(3,3,3), amrex::IntVect(N-4,N-4,N-4));
+        amrex::Print() << "Starting Time Integration...\n";
+        int step = 0;
 
-        for (amrex::MFIter mfi(rhs); mfi.isValid(); ++mfi) {
-            amrex::Box bx = mfi.tilebox() & interior_box; 
-            if (bx.ok()) {
-                auto const& r_arr = rhs.const_array(mfi);
-                for(int k=bx.smallEnd(2); k<=bx.bigEnd(2); ++k)
-                for(int j=bx.smallEnd(1); j<=bx.bigEnd(1); ++j)
-                for(int i=bx.smallEnd(0); i<=bx.bigEnd(0); ++i)
-                    max_err = std::max(max_err, std::abs(r_arr(i,j,k)));
+        while (t < t_end) {
+            double dt = CFL * dx / c_speed;
+            if (t + dt > t_end) dt = t_end - t;
+
+            // --- RK3 Stage 1 ---
+            get_rhs_local_equilibrium_3D(u, rhs, geom);
+            amrex::MultiFab::Copy(u1, u, 0, 0, 1, 0);                 
+            amrex::MultiFab::Saxpy(u1, dt, rhs, 0, 0, 1, 0);          
+            u1.FillBoundary(geom.periodicity());
+
+            // --- RK3 Stage 2 ---
+            get_rhs_local_equilibrium_3D(u1, rhs, geom);
+            amrex::MultiFab::LinComb(u2, 0.75, u, 0, 0.25, u1, 0, 0, 1, 0); 
+            amrex::MultiFab::Saxpy(u2, 0.25 * dt, rhs, 0, 0, 1, 0);
+            u2.FillBoundary(geom.periodicity());
+
+            // --- RK3 Stage 3 ---
+            get_rhs_local_equilibrium_3D(u2, rhs, geom);
+            amrex::MultiFab::LinComb(u, 1.0/3.0, u, 0, 2.0/3.0, u2, 0, 0, 1, 0);
+            amrex::MultiFab::Saxpy(u, (2.0/3.0) * dt, rhs, 0, 0, 1, 0);
+            u.FillBoundary(geom.periodicity());
+
+            t += dt;
+            step++;
+            
+            if (step % 10 == 0) {
+                amrex::Print() << "Step " << step << " | Time: " << t << " / " << t_end << "\n";
             }
         }
-        
-        amrex::ParallelDescriptor::ReduceRealMax(max_err);
 
-        amrex::Print() << std::scientific << std::setprecision(10);
-        amrex::Print() << "--- 3D EXACT STEADY-STATE TEST ---\n"
-                       << "Approach: Local Equilibrium Evaluation (AMReX ncomp=3 Parallel)\n"
-                       << "Max 3D RHS Error: " << max_err << "\n";
+        // =========================================================
+        // Calculate Machine Precision Well-Balanced Error
+        // =========================================================
+        amrex::MultiFab error(ba, dm, 1, 0);
+        amrex::MultiFab::Copy(error, u, 0, 0, 1, 0);
+        amrex::MultiFab::Subtract(error, *E_center, 0, 0, 1, 0);
+
+        double vol = dx * dy * dz;
+        double linf_err = error.norm0(0);
+        double l1_err   = error.norm1(0) * vol;
+        double l2_err   = error.norm2(0) * std::sqrt(vol);
+
+        amrex::Print() << "\n--- Well-Balanced Verification ---\n"
+                       << std::scientific << std::setprecision(8)
+                       << "L1 Error:    " << l1_err << "\n"
+                       << "L2 Error:    " << l2_err << "\n"
+                       << "L-inf Error: " << linf_err << "\n"
+                       << "----------------------------------\n";
         
-        if (max_err < 1e-12) {
-            amrex::Print() << "SUCCESS: The scheme is well-balanced to machine precision!\n";
-        }
+        // =========================================================
+        // Write Output to AMReX Plotfile
+        // =========================================================
+        std::string plot_filename = "plt_final";
+        amrex::Vector<std::string> var_names = {"u"}; 
+        amrex::WriteSingleLevelPlotfile(plot_filename, u, var_names, geom, t, step);
+        amrex::Print() << "Successfully wrote plotfile to directory: " << plot_filename << "\n";
 
         // Cleanup
-        delete E_center; delete E_face; delete E_prime;
+        delete E_center; delete E_face;
     }
     amrex::Finalize();
     return 0;
