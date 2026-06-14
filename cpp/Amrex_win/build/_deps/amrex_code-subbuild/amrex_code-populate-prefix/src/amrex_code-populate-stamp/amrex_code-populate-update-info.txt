@@ -1,7 +1,0 @@
-# This is a generated file and its contents are an internal implementation detail.
-# The patch step will be re-executed if anything in this file changes.
-# No other meaning or use of this file is supported.
-
-command (connected)=/cluster/software/stacks/2024-06/spack/opt/spack/linux-ubuntu22.04-x86_64_v3/gcc-12.2.0/cmake-3.27.7-qk5wrxppdzawtjy2ndtushoxqv3kmao4/bin/cmake;-Dcan_fetch=YES;-P;/cluster/home/mkryukov/Thesis/Amrex/build/_deps/amrex_code-subbuild/amrex_code-populate-prefix/tmp/amrex_code-populate-gitupdate.cmake
-command (disconnected)=/cluster/software/stacks/2024-06/spack/opt/spack/linux-ubuntu22.04-x86_64_v3/gcc-12.2.0/cmake-3.27.7-qk5wrxppdzawtjy2ndtushoxqv3kmao4/bin/cmake;-Dcan_fetch=NO;-P;/cluster/home/mkryukov/Thesis/Amrex/build/_deps/amrex_code-subbuild/amrex_code-populate-prefix/tmp/amrex_code-populate-gitupdate.cmake
-work_dir=/cluster/home/mkryukov/Thesis/Amrex/build/_deps/amrex_code-src

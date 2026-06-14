@@ -1,3 +1,0 @@
-/cluster/home/mkryukov/Thesis/Amrex/build/_deps/amrex_code-subbuild/CMakeFiles/amrex_code-populate.dir
-/cluster/home/mkryukov/Thesis/Amrex/build/_deps/amrex_code-subbuild/CMakeFiles/edit_cache.dir
-/cluster/home/mkryukov/Thesis/Amrex/build/_deps/amrex_code-subbuild/CMakeFiles/rebuild_cache.dir
