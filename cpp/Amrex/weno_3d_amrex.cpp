@@ -1,4 +1,5 @@
 #include <iostream>
+#include <chrono>
 #include <vector>
 #include <cmath>
 #include <iomanip>
@@ -17,8 +18,8 @@
 // 1. Setup and Parameters
 // =========================================================
 constexpr double cx = 1.0, cy = 1.0, cz = 1.0;
-constexpr double lam = -0.3; 
-constexpr int N = 16;
+constexpr double lam = 0.0; 
+constexpr int N = 128;
 
 const double dx = 2.0 / N, dy = 2.0 / N, dz = 2.0 / N;
 
@@ -204,7 +205,7 @@ int main(int argc, char* argv[]) {
         amrex::Geometry geom(domain, real_box, amrex::CoordSys::cartesian, is_periodic);
 
         amrex::BoxArray ba(domain);
-        ba.maxSize(8); 
+        ba.maxSize(128); 
         amrex::DistributionMapping dm(ba);
 
         // Allocate equilibrium globals
@@ -229,8 +230,10 @@ int main(int argc, char* argv[]) {
         double c_speed = std::max({std::abs(cx), std::abs(cy), std::abs(cz)});
 
         amrex::Print() << "Starting Time Integration...\n";
-        int step = 0;
+        BL_PROFILE_VAR("Evolution_Loop", pmain);
 
+        int step = 0;
+        auto wall_start = std::chrono::steady_clock::now();
         while (t < t_end) {
             double dt = CFL * dx / c_speed;
             if (t + dt > t_end) dt = t_end - t;
@@ -260,7 +263,10 @@ int main(int argc, char* argv[]) {
                 amrex::Print() << "Step " << step << " | Time: " << t << " / " << t_end << "\n";
             }
         }
-
+        auto wall_end = std::chrono::steady_clock::now();
+        std::chrono::duration<double> wall_elapsed = wall_end - wall_start;
+        amrex::Print() << "Wall clock time for time loop: " << wall_elapsed.count() << " s\n";
+        BL_PROFILE_VAR_STOP(pmain); 
         // =========================================================
         // Calculate Machine Precision Well-Balanced Error
         // =========================================================
@@ -283,11 +289,11 @@ int main(int argc, char* argv[]) {
         // =========================================================
         // Write Output to AMReX Plotfile
         // =========================================================
-        std::string plot_filename = "plt_final";
+ /*       std::string plot_filename = "plt_final";
         amrex::Vector<std::string> var_names = {"u"}; 
         amrex::WriteSingleLevelPlotfile(plot_filename, u, var_names, geom, t, step);
         amrex::Print() << "Successfully wrote plotfile to directory: " << plot_filename << "\n";
-
+*/
         // Cleanup
         delete E_center; delete E_face;
     }
