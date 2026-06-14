@@ -1,0 +1,82 @@
+
+---
+events:
+  -
+    kind: "find-v1"
+    backtrace:
+      - "/opt/homebrew/share/cmake/Modules/FindGit.cmake:86 (find_program)"
+      - "/opt/homebrew/share/cmake/Modules/FetchContent.cmake:1874 (find_package)"
+      - "/opt/homebrew/share/cmake/Modules/FetchContent.cmake:1609 (__FetchContent_populateSubbuild)"
+      - "/opt/homebrew/share/cmake/Modules/FetchContent.cmake:2145:EVAL:2 (__FetchContent_doPopulation)"
+      - "/opt/homebrew/share/cmake/Modules/FetchContent.cmake:2145 (cmake_language)"
+      - "/opt/homebrew/share/cmake/Modules/FetchContent.cmake:2384 (__FetchContent_Populate)"
+      - "cmake/SetupAMReX.cmake:26 (FetchContent_MakeAvailable)"
+      - "CMakeLists.txt:4 (include)"
+    mode: "program"
+    variable: "GIT_EXECUTABLE"
+    description: "Git command line client"
+    settings:
+      SearchFramework: "FIRST"
+      SearchAppBundle: "FIRST"
+      CMAKE_FIND_USE_CMAKE_PATH: true
+      CMAKE_FIND_USE_CMAKE_ENVIRONMENT_PATH: true
+      CMAKE_FIND_USE_SYSTEM_ENVIRONMENT_PATH: true
+      CMAKE_FIND_USE_CMAKE_SYSTEM_PATH: true
+      CMAKE_FIND_USE_INSTALL_PREFIX: true
+    names:
+      - "git"
+    candidate_directories:
+      - "/Applications/Docker.app/Contents/Resources/bin/"
+      - "/opt/homebrew/bin/"
+      - "/Users/max/.cargo/bin/"
+      - "/Users/max/opt/anaconda3/bin/"
+      - "/Users/max/opt/anaconda3/condabin/"
+      - "/usr/local/bin/"
+      - "/System/Cryptexes/App/usr/bin/"
+      - "/usr/bin/"
+      - "/bin/"
+      - "/usr/sbin/"
+      - "/sbin/"
+      - "/Library/Frameworks/Python.framework/"
+      - "/var/run/com.apple.security.cryptexd/codex.system/bootstrap/usr/local/bin/"
+      - "/var/run/com.apple.security.cryptexd/codex.system/bootstrap/usr/bin/"
+      - "/var/run/com.apple.security.cryptexd/codex.system/bootstrap/usr/appleinternal/bin/"
+      - "/opt/pkg/env/active/bin/"
+      - "/opt/pmk/env/global/bin/"
+      - "/opt/X11/bin/"
+      - "/Library/Apple/usr/bin/"
+      - "/Library/TeX/texbin/"
+      - "/Users/max/Applications/iTerm.app/Contents/Resources/utilities/"
+    searched_directories:
+      - "/Applications/Docker.app/Contents/Resources/bin/git"
+      - "/opt/homebrew/bin/git"
+      - "/Users/max/.cargo/bin/git"
+      - "/Users/max/opt/anaconda3/bin/git"
+      - "/Users/max/opt/anaconda3/condabin/git"
+      - "/usr/local/bin/git"
+      - "/System/Cryptexes/App/usr/bin/git"
+    found: "/usr/bin/git"
+    search_context:
+      ENV{PATH}:
+        - "/Applications/Docker.app/Contents/Resources/bin"
+        - "/opt/homebrew/bin"
+        - "/Users/max/.cargo/bin"
+        - "/Users/max/opt/anaconda3/bin"
+        - "/Users/max/opt/anaconda3/condabin"
+        - "/usr/local/bin"
+        - "/System/Cryptexes/App/usr/bin"
+        - "/usr/bin"
+        - "/bin"
+        - "/usr/sbin"
+        - "/sbin"
+        - "/Library/Frameworks/Python.framework"
+        - "/var/run/com.apple.security.cryptexd/codex.system/bootstrap/usr/local/bin"
+        - "/var/run/com.apple.security.cryptexd/codex.system/bootstrap/usr/bin"
+        - "/var/run/com.apple.security.cryptexd/codex.system/bootstrap/usr/appleinternal/bin"
+        - "/opt/pkg/env/active/bin"
+        - "/opt/pmk/env/global/bin"
+        - "/opt/X11/bin"
+        - "/Library/Apple/usr/bin"
+        - "/Library/TeX/texbin"
+        - "/Users/max/Applications/iTerm.app/Contents/Resources/utilities"
+...

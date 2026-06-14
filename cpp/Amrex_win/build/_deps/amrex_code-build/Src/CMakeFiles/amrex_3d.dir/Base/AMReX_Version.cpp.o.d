@@ -1,0 +1,136 @@
+_deps/amrex_code-build/Src/CMakeFiles/amrex_3d.dir/Base/AMReX_Version.cpp.o: \
+ /cluster/home/mkryukov/Thesis/Amrex/build/_deps/amrex_code-src/Src/Base/AMReX_Version.cpp \
+ /usr/include/stdc-predef.h \
+ /cluster/home/mkryukov/Thesis/Amrex/build/_deps/amrex_code-build/AMReX_Version.H \
+ /cluster/software/stacks/2024-06/spack/opt/spack/linux-ubuntu22.04-x86_64_v3/gcc-11.4.0/gcc-12.2.0-bj2twcnwcownogkldo6ndfylxx5sqpbn/lib/gcc/x86_64-pc-linux-gnu/12.2.0/../../../../include/c++/12.2.0/string \
+ /cluster/software/stacks/2024-06/spack/opt/spack/linux-ubuntu22.04-x86_64_v3/gcc-11.4.0/gcc-12.2.0-bj2twcnwcownogkldo6ndfylxx5sqpbn/lib/gcc/x86_64-pc-linux-gnu/12.2.0/../../../../include/c++/12.2.0/x86_64-pc-linux-gnu/bits/c++config.h \
+ /cluster/software/stacks/2024-06/spack/opt/spack/linux-ubuntu22.04-x86_64_v3/gcc-11.4.0/gcc-12.2.0-bj2twcnwcownogkldo6ndfylxx5sqpbn/lib/gcc/x86_64-pc-linux-gnu/12.2.0/../../../../include/c++/12.2.0/x86_64-pc-linux-gnu/bits/os_defines.h \
+ /usr/include/features.h /usr/include/features-time64.h \
+ /usr/include/x86_64-linux-gnu/bits/wordsize.h \
+ /usr/include/x86_64-linux-gnu/bits/timesize.h \
+ /usr/include/x86_64-linux-gnu/sys/cdefs.h \
+ /usr/include/x86_64-linux-gnu/bits/long-double.h \
+ /usr/include/x86_64-linux-gnu/gnu/stubs.h \
+ /usr/include/x86_64-linux-gnu/gnu/stubs-64.h \
+ /cluster/software/stacks/2024-06/spack/opt/spack/linux-ubuntu22.04-x86_64_v3/gcc-11.4.0/gcc-12.2.0-bj2twcnwcownogkldo6ndfylxx5sqpbn/lib/gcc/x86_64-pc-linux-gnu/12.2.0/../../../../include/c++/12.2.0/x86_64-pc-linux-gnu/bits/cpu_defines.h \
+ /cluster/software/stacks/2024-06/spack/opt/spack/linux-ubuntu22.04-x86_64_v3/gcc-11.4.0/gcc-12.2.0-bj2twcnwcownogkldo6ndfylxx5sqpbn/lib/gcc/x86_64-pc-linux-gnu/12.2.0/../../../../include/c++/12.2.0/pstl/pstl_config.h \
+ /cluster/software/stacks/2024-06/spack/opt/spack/linux-ubuntu22.04-x86_64_v3/gcc-11.4.0/gcc-12.2.0-bj2twcnwcownogkldo6ndfylxx5sqpbn/lib/gcc/x86_64-pc-linux-gnu/12.2.0/../../../../include/c++/12.2.0/bits/stringfwd.h \
+ /cluster/software/stacks/2024-06/spack/opt/spack/linux-ubuntu22.04-x86_64_v3/gcc-11.4.0/gcc-12.2.0-bj2twcnwcownogkldo6ndfylxx5sqpbn/lib/gcc/x86_64-pc-linux-gnu/12.2.0/../../../../include/c++/12.2.0/bits/memoryfwd.h \
+ /cluster/software/stacks/2024-06/spack/opt/spack/linux-ubuntu22.04-x86_64_v3/gcc-11.4.0/gcc-12.2.0-bj2twcnwcownogkldo6ndfylxx5sqpbn/lib/gcc/x86_64-pc-linux-gnu/12.2.0/../../../../include/c++/12.2.0/bits/char_traits.h \
+ /cluster/software/stacks/2024-06/spack/opt/spack/linux-ubuntu22.04-x86_64_v3/gcc-11.4.0/gcc-12.2.0-bj2twcnwcownogkldo6ndfylxx5sqpbn/lib/gcc/x86_64-pc-linux-gnu/12.2.0/../../../../include/c++/12.2.0/bits/postypes.h \
+ /cluster/software/stacks/2024-06/spack/opt/spack/linux-ubuntu22.04-x86_64_v3/gcc-11.4.0/gcc-12.2.0-bj2twcnwcownogkldo6ndfylxx5sqpbn/lib/gcc/x86_64-pc-linux-gnu/12.2.0/../../../../include/c++/12.2.0/cwchar \
+ /usr/include/wchar.h \
+ /usr/include/x86_64-linux-gnu/bits/libc-header-start.h \
+ /usr/include/x86_64-linux-gnu/bits/floatn.h \
+ /usr/include/x86_64-linux-gnu/bits/floatn-common.h \
+ /cluster/software/stacks/2024-06/spack/opt/spack/linux-ubuntu22.04-x86_64_v3/gcc-11.4.0/gcc-12.2.0-bj2twcnwcownogkldo6ndfylxx5sqpbn/lib/gcc/x86_64-pc-linux-gnu/12.2.0/include/stddef.h \
+ /cluster/software/stacks/2024-06/spack/opt/spack/linux-ubuntu22.04-x86_64_v3/gcc-11.4.0/gcc-12.2.0-bj2twcnwcownogkldo6ndfylxx5sqpbn/lib/gcc/x86_64-pc-linux-gnu/12.2.0/include/stdarg.h \
+ /usr/include/x86_64-linux-gnu/bits/wchar.h \
+ /usr/include/x86_64-linux-gnu/bits/types/wint_t.h \
+ /usr/include/x86_64-linux-gnu/bits/types/mbstate_t.h \
+ /usr/include/x86_64-linux-gnu/bits/types/__mbstate_t.h \
+ /usr/include/x86_64-linux-gnu/bits/types/__FILE.h \
+ /usr/include/x86_64-linux-gnu/bits/types/FILE.h \
+ /usr/include/x86_64-linux-gnu/bits/types/locale_t.h \
+ /usr/include/x86_64-linux-gnu/bits/types/__locale_t.h \
+ /cluster/software/stacks/2024-06/spack/opt/spack/linux-ubuntu22.04-x86_64_v3/gcc-11.4.0/gcc-12.2.0-bj2twcnwcownogkldo6ndfylxx5sqpbn/lib/gcc/x86_64-pc-linux-gnu/12.2.0/../../../../include/c++/12.2.0/type_traits \
+ /cluster/software/stacks/2024-06/spack/opt/spack/linux-ubuntu22.04-x86_64_v3/gcc-11.4.0/gcc-12.2.0-bj2twcnwcownogkldo6ndfylxx5sqpbn/lib/gcc/x86_64-pc-linux-gnu/12.2.0/../../../../include/c++/12.2.0/compare \
+ /cluster/software/stacks/2024-06/spack/opt/spack/linux-ubuntu22.04-x86_64_v3/gcc-11.4.0/gcc-12.2.0-bj2twcnwcownogkldo6ndfylxx5sqpbn/lib/gcc/x86_64-pc-linux-gnu/12.2.0/../../../../include/c++/12.2.0/concepts \
+ /cluster/software/stacks/2024-06/spack/opt/spack/linux-ubuntu22.04-x86_64_v3/gcc-11.4.0/gcc-12.2.0-bj2twcnwcownogkldo6ndfylxx5sqpbn/lib/gcc/x86_64-pc-linux-gnu/12.2.0/../../../../include/c++/12.2.0/bits/stl_construct.h \
+ /cluster/software/stacks/2024-06/spack/opt/spack/linux-ubuntu22.04-x86_64_v3/gcc-11.4.0/gcc-12.2.0-bj2twcnwcownogkldo6ndfylxx5sqpbn/lib/gcc/x86_64-pc-linux-gnu/12.2.0/../../../../include/c++/12.2.0/new \
+ /cluster/software/stacks/2024-06/spack/opt/spack/linux-ubuntu22.04-x86_64_v3/gcc-11.4.0/gcc-12.2.0-bj2twcnwcownogkldo6ndfylxx5sqpbn/lib/gcc/x86_64-pc-linux-gnu/12.2.0/../../../../include/c++/12.2.0/bits/exception.h \
+ /cluster/software/stacks/2024-06/spack/opt/spack/linux-ubuntu22.04-x86_64_v3/gcc-11.4.0/gcc-12.2.0-bj2twcnwcownogkldo6ndfylxx5sqpbn/lib/gcc/x86_64-pc-linux-gnu/12.2.0/../../../../include/c++/12.2.0/bits/move.h \
+ /cluster/software/stacks/2024-06/spack/opt/spack/linux-ubuntu22.04-x86_64_v3/gcc-11.4.0/gcc-12.2.0-bj2twcnwcownogkldo6ndfylxx5sqpbn/lib/gcc/x86_64-pc-linux-gnu/12.2.0/../../../../include/c++/12.2.0/bits/stl_iterator_base_types.h \
+ /cluster/software/stacks/2024-06/spack/opt/spack/linux-ubuntu22.04-x86_64_v3/gcc-11.4.0/gcc-12.2.0-bj2twcnwcownogkldo6ndfylxx5sqpbn/lib/gcc/x86_64-pc-linux-gnu/12.2.0/../../../../include/c++/12.2.0/bits/iterator_concepts.h \
+ /cluster/software/stacks/2024-06/spack/opt/spack/linux-ubuntu22.04-x86_64_v3/gcc-11.4.0/gcc-12.2.0-bj2twcnwcownogkldo6ndfylxx5sqpbn/lib/gcc/x86_64-pc-linux-gnu/12.2.0/../../../../include/c++/12.2.0/bits/ptr_traits.h \
+ /cluster/software/stacks/2024-06/spack/opt/spack/linux-ubuntu22.04-x86_64_v3/gcc-11.4.0/gcc-12.2.0-bj2twcnwcownogkldo6ndfylxx5sqpbn/lib/gcc/x86_64-pc-linux-gnu/12.2.0/../../../../include/c++/12.2.0/bits/ranges_cmp.h \
+ /cluster/software/stacks/2024-06/spack/opt/spack/linux-ubuntu22.04-x86_64_v3/gcc-11.4.0/gcc-12.2.0-bj2twcnwcownogkldo6ndfylxx5sqpbn/lib/gcc/x86_64-pc-linux-gnu/12.2.0/../../../../include/c++/12.2.0/bits/stl_iterator_base_funcs.h \
+ /cluster/software/stacks/2024-06/spack/opt/spack/linux-ubuntu22.04-x86_64_v3/gcc-11.4.0/gcc-12.2.0-bj2twcnwcownogkldo6ndfylxx5sqpbn/lib/gcc/x86_64-pc-linux-gnu/12.2.0/../../../../include/c++/12.2.0/bits/concept_check.h \
+ /cluster/software/stacks/2024-06/spack/opt/spack/linux-ubuntu22.04-x86_64_v3/gcc-11.4.0/gcc-12.2.0-bj2twcnwcownogkldo6ndfylxx5sqpbn/lib/gcc/x86_64-pc-linux-gnu/12.2.0/../../../../include/c++/12.2.0/debug/assertions.h \
+ /cluster/software/stacks/2024-06/spack/opt/spack/linux-ubuntu22.04-x86_64_v3/gcc-11.4.0/gcc-12.2.0-bj2twcnwcownogkldo6ndfylxx5sqpbn/lib/gcc/x86_64-pc-linux-gnu/12.2.0/../../../../include/c++/12.2.0/cstdint \
+ /cluster/software/stacks/2024-06/spack/opt/spack/linux-ubuntu22.04-x86_64_v3/gcc-11.4.0/gcc-12.2.0-bj2twcnwcownogkldo6ndfylxx5sqpbn/lib/gcc/x86_64-pc-linux-gnu/12.2.0/include/stdint.h \
+ /usr/include/stdint.h /usr/include/x86_64-linux-gnu/bits/types.h \
+ /usr/include/x86_64-linux-gnu/bits/typesizes.h \
+ /usr/include/x86_64-linux-gnu/bits/time64.h \
+ /usr/include/x86_64-linux-gnu/bits/stdint-intn.h \
+ /usr/include/x86_64-linux-gnu/bits/stdint-uintn.h \
+ /cluster/software/stacks/2024-06/spack/opt/spack/linux-ubuntu22.04-x86_64_v3/gcc-11.4.0/gcc-12.2.0-bj2twcnwcownogkldo6ndfylxx5sqpbn/lib/gcc/x86_64-pc-linux-gnu/12.2.0/../../../../include/c++/12.2.0/bits/allocator.h \
+ /cluster/software/stacks/2024-06/spack/opt/spack/linux-ubuntu22.04-x86_64_v3/gcc-11.4.0/gcc-12.2.0-bj2twcnwcownogkldo6ndfylxx5sqpbn/lib/gcc/x86_64-pc-linux-gnu/12.2.0/../../../../include/c++/12.2.0/x86_64-pc-linux-gnu/bits/c++allocator.h \
+ /cluster/software/stacks/2024-06/spack/opt/spack/linux-ubuntu22.04-x86_64_v3/gcc-11.4.0/gcc-12.2.0-bj2twcnwcownogkldo6ndfylxx5sqpbn/lib/gcc/x86_64-pc-linux-gnu/12.2.0/../../../../include/c++/12.2.0/bits/new_allocator.h \
+ /cluster/software/stacks/2024-06/spack/opt/spack/linux-ubuntu22.04-x86_64_v3/gcc-11.4.0/gcc-12.2.0-bj2twcnwcownogkldo6ndfylxx5sqpbn/lib/gcc/x86_64-pc-linux-gnu/12.2.0/../../../../include/c++/12.2.0/bits/functexcept.h \
+ /cluster/software/stacks/2024-06/spack/opt/spack/linux-ubuntu22.04-x86_64_v3/gcc-11.4.0/gcc-12.2.0-bj2twcnwcownogkldo6ndfylxx5sqpbn/lib/gcc/x86_64-pc-linux-gnu/12.2.0/../../../../include/c++/12.2.0/bits/exception_defines.h \
+ /cluster/software/stacks/2024-06/spack/opt/spack/linux-ubuntu22.04-x86_64_v3/gcc-11.4.0/gcc-12.2.0-bj2twcnwcownogkldo6ndfylxx5sqpbn/lib/gcc/x86_64-pc-linux-gnu/12.2.0/../../../../include/c++/12.2.0/bits/cpp_type_traits.h \
+ /cluster/software/stacks/2024-06/spack/opt/spack/linux-ubuntu22.04-x86_64_v3/gcc-11.4.0/gcc-12.2.0-bj2twcnwcownogkldo6ndfylxx5sqpbn/lib/gcc/x86_64-pc-linux-gnu/12.2.0/../../../../include/c++/12.2.0/bits/localefwd.h \
+ /cluster/software/stacks/2024-06/spack/opt/spack/linux-ubuntu22.04-x86_64_v3/gcc-11.4.0/gcc-12.2.0-bj2twcnwcownogkldo6ndfylxx5sqpbn/lib/gcc/x86_64-pc-linux-gnu/12.2.0/../../../../include/c++/12.2.0/x86_64-pc-linux-gnu/bits/c++locale.h \
+ /cluster/software/stacks/2024-06/spack/opt/spack/linux-ubuntu22.04-x86_64_v3/gcc-11.4.0/gcc-12.2.0-bj2twcnwcownogkldo6ndfylxx5sqpbn/lib/gcc/x86_64-pc-linux-gnu/12.2.0/../../../../include/c++/12.2.0/clocale \
+ /usr/include/locale.h /usr/include/x86_64-linux-gnu/bits/locale.h \
+ /cluster/software/stacks/2024-06/spack/opt/spack/linux-ubuntu22.04-x86_64_v3/gcc-11.4.0/gcc-12.2.0-bj2twcnwcownogkldo6ndfylxx5sqpbn/lib/gcc/x86_64-pc-linux-gnu/12.2.0/../../../../include/c++/12.2.0/iosfwd \
+ /cluster/software/stacks/2024-06/spack/opt/spack/linux-ubuntu22.04-x86_64_v3/gcc-11.4.0/gcc-12.2.0-bj2twcnwcownogkldo6ndfylxx5sqpbn/lib/gcc/x86_64-pc-linux-gnu/12.2.0/../../../../include/c++/12.2.0/cctype \
+ /usr/include/ctype.h /usr/include/x86_64-linux-gnu/bits/endian.h \
+ /usr/include/x86_64-linux-gnu/bits/endianness.h \
+ /cluster/software/stacks/2024-06/spack/opt/spack/linux-ubuntu22.04-x86_64_v3/gcc-11.4.0/gcc-12.2.0-bj2twcnwcownogkldo6ndfylxx5sqpbn/lib/gcc/x86_64-pc-linux-gnu/12.2.0/../../../../include/c++/12.2.0/bits/ostream_insert.h \
+ /cluster/software/stacks/2024-06/spack/opt/spack/linux-ubuntu22.04-x86_64_v3/gcc-11.4.0/gcc-12.2.0-bj2twcnwcownogkldo6ndfylxx5sqpbn/lib/gcc/x86_64-pc-linux-gnu/12.2.0/../../../../include/c++/12.2.0/bits/cxxabi_forced.h \
+ /cluster/software/stacks/2024-06/spack/opt/spack/linux-ubuntu22.04-x86_64_v3/gcc-11.4.0/gcc-12.2.0-bj2twcnwcownogkldo6ndfylxx5sqpbn/lib/gcc/x86_64-pc-linux-gnu/12.2.0/../../../../include/c++/12.2.0/bits/stl_iterator.h \
+ /cluster/software/stacks/2024-06/spack/opt/spack/linux-ubuntu22.04-x86_64_v3/gcc-11.4.0/gcc-12.2.0-bj2twcnwcownogkldo6ndfylxx5sqpbn/lib/gcc/x86_64-pc-linux-gnu/12.2.0/../../../../include/c++/12.2.0/ext/type_traits.h \
+ /cluster/software/stacks/2024-06/spack/opt/spack/linux-ubuntu22.04-x86_64_v3/gcc-11.4.0/gcc-12.2.0-bj2twcnwcownogkldo6ndfylxx5sqpbn/lib/gcc/x86_64-pc-linux-gnu/12.2.0/../../../../include/c++/12.2.0/bits/stl_function.h \
+ /cluster/software/stacks/2024-06/spack/opt/spack/linux-ubuntu22.04-x86_64_v3/gcc-11.4.0/gcc-12.2.0-bj2twcnwcownogkldo6ndfylxx5sqpbn/lib/gcc/x86_64-pc-linux-gnu/12.2.0/../../../../include/c++/12.2.0/backward/binders.h \
+ /cluster/software/stacks/2024-06/spack/opt/spack/linux-ubuntu22.04-x86_64_v3/gcc-11.4.0/gcc-12.2.0-bj2twcnwcownogkldo6ndfylxx5sqpbn/lib/gcc/x86_64-pc-linux-gnu/12.2.0/../../../../include/c++/12.2.0/ext/numeric_traits.h \
+ /cluster/software/stacks/2024-06/spack/opt/spack/linux-ubuntu22.04-x86_64_v3/gcc-11.4.0/gcc-12.2.0-bj2twcnwcownogkldo6ndfylxx5sqpbn/lib/gcc/x86_64-pc-linux-gnu/12.2.0/../../../../include/c++/12.2.0/bits/stl_algobase.h \
+ /cluster/software/stacks/2024-06/spack/opt/spack/linux-ubuntu22.04-x86_64_v3/gcc-11.4.0/gcc-12.2.0-bj2twcnwcownogkldo6ndfylxx5sqpbn/lib/gcc/x86_64-pc-linux-gnu/12.2.0/../../../../include/c++/12.2.0/bits/stl_pair.h \
+ /cluster/software/stacks/2024-06/spack/opt/spack/linux-ubuntu22.04-x86_64_v3/gcc-11.4.0/gcc-12.2.0-bj2twcnwcownogkldo6ndfylxx5sqpbn/lib/gcc/x86_64-pc-linux-gnu/12.2.0/../../../../include/c++/12.2.0/bits/utility.h \
+ /cluster/software/stacks/2024-06/spack/opt/spack/linux-ubuntu22.04-x86_64_v3/gcc-11.4.0/gcc-12.2.0-bj2twcnwcownogkldo6ndfylxx5sqpbn/lib/gcc/x86_64-pc-linux-gnu/12.2.0/../../../../include/c++/12.2.0/debug/debug.h \
+ /cluster/software/stacks/2024-06/spack/opt/spack/linux-ubuntu22.04-x86_64_v3/gcc-11.4.0/gcc-12.2.0-bj2twcnwcownogkldo6ndfylxx5sqpbn/lib/gcc/x86_64-pc-linux-gnu/12.2.0/../../../../include/c++/12.2.0/bits/predefined_ops.h \
+ /cluster/software/stacks/2024-06/spack/opt/spack/linux-ubuntu22.04-x86_64_v3/gcc-11.4.0/gcc-12.2.0-bj2twcnwcownogkldo6ndfylxx5sqpbn/lib/gcc/x86_64-pc-linux-gnu/12.2.0/../../../../include/c++/12.2.0/bits/refwrap.h \
+ /cluster/software/stacks/2024-06/spack/opt/spack/linux-ubuntu22.04-x86_64_v3/gcc-11.4.0/gcc-12.2.0-bj2twcnwcownogkldo6ndfylxx5sqpbn/lib/gcc/x86_64-pc-linux-gnu/12.2.0/../../../../include/c++/12.2.0/bits/invoke.h \
+ /cluster/software/stacks/2024-06/spack/opt/spack/linux-ubuntu22.04-x86_64_v3/gcc-11.4.0/gcc-12.2.0-bj2twcnwcownogkldo6ndfylxx5sqpbn/lib/gcc/x86_64-pc-linux-gnu/12.2.0/../../../../include/c++/12.2.0/bits/range_access.h \
+ /cluster/software/stacks/2024-06/spack/opt/spack/linux-ubuntu22.04-x86_64_v3/gcc-11.4.0/gcc-12.2.0-bj2twcnwcownogkldo6ndfylxx5sqpbn/lib/gcc/x86_64-pc-linux-gnu/12.2.0/../../../../include/c++/12.2.0/initializer_list \
+ /cluster/software/stacks/2024-06/spack/opt/spack/linux-ubuntu22.04-x86_64_v3/gcc-11.4.0/gcc-12.2.0-bj2twcnwcownogkldo6ndfylxx5sqpbn/lib/gcc/x86_64-pc-linux-gnu/12.2.0/../../../../include/c++/12.2.0/bits/basic_string.h \
+ /cluster/software/stacks/2024-06/spack/opt/spack/linux-ubuntu22.04-x86_64_v3/gcc-11.4.0/gcc-12.2.0-bj2twcnwcownogkldo6ndfylxx5sqpbn/lib/gcc/x86_64-pc-linux-gnu/12.2.0/../../../../include/c++/12.2.0/ext/alloc_traits.h \
+ /cluster/software/stacks/2024-06/spack/opt/spack/linux-ubuntu22.04-x86_64_v3/gcc-11.4.0/gcc-12.2.0-bj2twcnwcownogkldo6ndfylxx5sqpbn/lib/gcc/x86_64-pc-linux-gnu/12.2.0/../../../../include/c++/12.2.0/bits/alloc_traits.h \
+ /cluster/software/stacks/2024-06/spack/opt/spack/linux-ubuntu22.04-x86_64_v3/gcc-11.4.0/gcc-12.2.0-bj2twcnwcownogkldo6ndfylxx5sqpbn/lib/gcc/x86_64-pc-linux-gnu/12.2.0/../../../../include/c++/12.2.0/string_view \
+ /cluster/software/stacks/2024-06/spack/opt/spack/linux-ubuntu22.04-x86_64_v3/gcc-11.4.0/gcc-12.2.0-bj2twcnwcownogkldo6ndfylxx5sqpbn/lib/gcc/x86_64-pc-linux-gnu/12.2.0/../../../../include/c++/12.2.0/bits/functional_hash.h \
+ /cluster/software/stacks/2024-06/spack/opt/spack/linux-ubuntu22.04-x86_64_v3/gcc-11.4.0/gcc-12.2.0-bj2twcnwcownogkldo6ndfylxx5sqpbn/lib/gcc/x86_64-pc-linux-gnu/12.2.0/../../../../include/c++/12.2.0/bits/hash_bytes.h \
+ /cluster/software/stacks/2024-06/spack/opt/spack/linux-ubuntu22.04-x86_64_v3/gcc-11.4.0/gcc-12.2.0-bj2twcnwcownogkldo6ndfylxx5sqpbn/lib/gcc/x86_64-pc-linux-gnu/12.2.0/../../../../include/c++/12.2.0/bits/ranges_base.h \
+ /cluster/software/stacks/2024-06/spack/opt/spack/linux-ubuntu22.04-x86_64_v3/gcc-11.4.0/gcc-12.2.0-bj2twcnwcownogkldo6ndfylxx5sqpbn/lib/gcc/x86_64-pc-linux-gnu/12.2.0/../../../../include/c++/12.2.0/bits/max_size_type.h \
+ /cluster/software/stacks/2024-06/spack/opt/spack/linux-ubuntu22.04-x86_64_v3/gcc-11.4.0/gcc-12.2.0-bj2twcnwcownogkldo6ndfylxx5sqpbn/lib/gcc/x86_64-pc-linux-gnu/12.2.0/../../../../include/c++/12.2.0/numbers \
+ /cluster/software/stacks/2024-06/spack/opt/spack/linux-ubuntu22.04-x86_64_v3/gcc-11.4.0/gcc-12.2.0-bj2twcnwcownogkldo6ndfylxx5sqpbn/lib/gcc/x86_64-pc-linux-gnu/12.2.0/../../../../include/c++/12.2.0/bits/string_view.tcc \
+ /cluster/software/stacks/2024-06/spack/opt/spack/linux-ubuntu22.04-x86_64_v3/gcc-11.4.0/gcc-12.2.0-bj2twcnwcownogkldo6ndfylxx5sqpbn/lib/gcc/x86_64-pc-linux-gnu/12.2.0/../../../../include/c++/12.2.0/ext/string_conversions.h \
+ /cluster/software/stacks/2024-06/spack/opt/spack/linux-ubuntu22.04-x86_64_v3/gcc-11.4.0/gcc-12.2.0-bj2twcnwcownogkldo6ndfylxx5sqpbn/lib/gcc/x86_64-pc-linux-gnu/12.2.0/../../../../include/c++/12.2.0/cstdlib \
+ /usr/include/stdlib.h /usr/include/x86_64-linux-gnu/bits/waitflags.h \
+ /usr/include/x86_64-linux-gnu/bits/waitstatus.h \
+ /usr/include/x86_64-linux-gnu/sys/types.h \
+ /usr/include/x86_64-linux-gnu/bits/types/clock_t.h \
+ /usr/include/x86_64-linux-gnu/bits/types/clockid_t.h \
+ /usr/include/x86_64-linux-gnu/bits/types/time_t.h \
+ /usr/include/x86_64-linux-gnu/bits/types/timer_t.h /usr/include/endian.h \
+ /usr/include/x86_64-linux-gnu/bits/byteswap.h \
+ /usr/include/x86_64-linux-gnu/bits/uintn-identity.h \
+ /usr/include/x86_64-linux-gnu/sys/select.h \
+ /usr/include/x86_64-linux-gnu/bits/select.h \
+ /usr/include/x86_64-linux-gnu/bits/types/sigset_t.h \
+ /usr/include/x86_64-linux-gnu/bits/types/__sigset_t.h \
+ /usr/include/x86_64-linux-gnu/bits/types/struct_timeval.h \
+ /usr/include/x86_64-linux-gnu/bits/types/struct_timespec.h \
+ /usr/include/x86_64-linux-gnu/bits/pthreadtypes.h \
+ /usr/include/x86_64-linux-gnu/bits/thread-shared-types.h \
+ /usr/include/x86_64-linux-gnu/bits/pthreadtypes-arch.h \
+ /usr/include/x86_64-linux-gnu/bits/atomic_wide_counter.h \
+ /usr/include/x86_64-linux-gnu/bits/struct_mutex.h \
+ /usr/include/x86_64-linux-gnu/bits/struct_rwlock.h /usr/include/alloca.h \
+ /usr/include/x86_64-linux-gnu/bits/stdlib-bsearch.h \
+ /usr/include/x86_64-linux-gnu/bits/stdlib-float.h \
+ /cluster/software/stacks/2024-06/spack/opt/spack/linux-ubuntu22.04-x86_64_v3/gcc-11.4.0/gcc-12.2.0-bj2twcnwcownogkldo6ndfylxx5sqpbn/lib/gcc/x86_64-pc-linux-gnu/12.2.0/../../../../include/c++/12.2.0/bits/std_abs.h \
+ /cluster/software/stacks/2024-06/spack/opt/spack/linux-ubuntu22.04-x86_64_v3/gcc-11.4.0/gcc-12.2.0-bj2twcnwcownogkldo6ndfylxx5sqpbn/lib/gcc/x86_64-pc-linux-gnu/12.2.0/../../../../include/c++/12.2.0/cstdio \
+ /usr/include/stdio.h /usr/include/x86_64-linux-gnu/bits/types/__fpos_t.h \
+ /usr/include/x86_64-linux-gnu/bits/types/__fpos64_t.h \
+ /usr/include/x86_64-linux-gnu/bits/types/struct_FILE.h \
+ /usr/include/x86_64-linux-gnu/bits/types/cookie_io_functions_t.h \
+ /usr/include/x86_64-linux-gnu/bits/stdio_lim.h \
+ /usr/include/x86_64-linux-gnu/bits/stdio.h \
+ /cluster/software/stacks/2024-06/spack/opt/spack/linux-ubuntu22.04-x86_64_v3/gcc-11.4.0/gcc-12.2.0-bj2twcnwcownogkldo6ndfylxx5sqpbn/lib/gcc/x86_64-pc-linux-gnu/12.2.0/../../../../include/c++/12.2.0/cerrno \
+ /usr/include/errno.h /usr/include/x86_64-linux-gnu/bits/errno.h \
+ /usr/include/linux/errno.h /usr/include/x86_64-linux-gnu/asm/errno.h \
+ /usr/include/asm-generic/errno.h /usr/include/asm-generic/errno-base.h \
+ /usr/include/x86_64-linux-gnu/bits/types/error_t.h \
+ /cluster/software/stacks/2024-06/spack/opt/spack/linux-ubuntu22.04-x86_64_v3/gcc-11.4.0/gcc-12.2.0-bj2twcnwcownogkldo6ndfylxx5sqpbn/lib/gcc/x86_64-pc-linux-gnu/12.2.0/../../../../include/c++/12.2.0/bits/charconv.h \
+ /cluster/software/stacks/2024-06/spack/opt/spack/linux-ubuntu22.04-x86_64_v3/gcc-11.4.0/gcc-12.2.0-bj2twcnwcownogkldo6ndfylxx5sqpbn/lib/gcc/x86_64-pc-linux-gnu/12.2.0/../../../../include/c++/12.2.0/bits/basic_string.tcc

@@ -1,0 +1,11 @@
+
+---
+events:
+  -
+    kind: "message-v1"
+    backtrace:
+      - "/cluster/software/stacks/2024-06/spack/opt/spack/linux-ubuntu22.04-x86_64_v3/gcc-12.2.0/cmake-3.27.7-qk5wrxppdzawtjy2ndtushoxqv3kmao4/share/cmake-3.27/Modules/CMakeDetermineSystem.cmake:211 (message)"
+      - "CMakeLists.txt:16 (project)"
+    message: |
+      The system is: Linux - 5.15.0-179-generic - x86_64
+...

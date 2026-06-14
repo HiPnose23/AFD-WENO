@@ -1,0 +1,1 @@
+/usr/bin/c++ -std=c++20 -O3 -DNDEBUG -arch arm64 -Wl,-search_paths_first -Wl,-headerpad_max_install_names CMakeFiles/order_test.dir/test.cpp.o -o order_test  _deps/amrex_code-build/Src/libamrex_3d.a /opt/homebrew/Cellar/open-mpi/5.0.9/lib/libmpi.dylib

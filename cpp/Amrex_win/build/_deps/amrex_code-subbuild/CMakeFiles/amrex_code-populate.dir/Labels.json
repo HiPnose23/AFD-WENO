@@ -1,0 +1,46 @@
+{
+	"sources" : 
+	[
+		{
+			"file" : "/cluster/home/mkryukov/Thesis/Amrex/build/_deps/amrex_code-subbuild/CMakeFiles/amrex_code-populate"
+		},
+		{
+			"file" : "/cluster/home/mkryukov/Thesis/Amrex/build/_deps/amrex_code-subbuild/CMakeFiles/amrex_code-populate.rule"
+		},
+		{
+			"file" : "/cluster/home/mkryukov/Thesis/Amrex/build/_deps/amrex_code-subbuild/CMakeFiles/amrex_code-populate-complete.rule"
+		},
+		{
+			"file" : "/cluster/home/mkryukov/Thesis/Amrex/build/_deps/amrex_code-subbuild/amrex_code-populate-prefix/src/amrex_code-populate-stamp/amrex_code-populate-build.rule"
+		},
+		{
+			"file" : "/cluster/home/mkryukov/Thesis/Amrex/build/_deps/amrex_code-subbuild/amrex_code-populate-prefix/src/amrex_code-populate-stamp/amrex_code-populate-configure.rule"
+		},
+		{
+			"file" : "/cluster/home/mkryukov/Thesis/Amrex/build/_deps/amrex_code-subbuild/amrex_code-populate-prefix/src/amrex_code-populate-stamp/amrex_code-populate-download.rule"
+		},
+		{
+			"file" : "/cluster/home/mkryukov/Thesis/Amrex/build/_deps/amrex_code-subbuild/amrex_code-populate-prefix/src/amrex_code-populate-stamp/amrex_code-populate-install.rule"
+		},
+		{
+			"file" : "/cluster/home/mkryukov/Thesis/Amrex/build/_deps/amrex_code-subbuild/amrex_code-populate-prefix/src/amrex_code-populate-stamp/amrex_code-populate-mkdir.rule"
+		},
+		{
+			"file" : "/cluster/home/mkryukov/Thesis/Amrex/build/_deps/amrex_code-subbuild/amrex_code-populate-prefix/src/amrex_code-populate-stamp/amrex_code-populate-patch.rule"
+		},
+		{
+			"file" : "/cluster/home/mkryukov/Thesis/Amrex/build/_deps/amrex_code-subbuild/amrex_code-populate-prefix/src/amrex_code-populate-stamp/amrex_code-populate-test.rule"
+		},
+		{
+			"file" : "/cluster/home/mkryukov/Thesis/Amrex/build/_deps/amrex_code-subbuild/amrex_code-populate-prefix/src/amrex_code-populate-stamp/amrex_code-populate-update.rule"
+		}
+	],
+	"target" : 
+	{
+		"labels" : 
+		[
+			"amrex_code-populate"
+		],
+		"name" : "amrex_code-populate"
+	}
+}

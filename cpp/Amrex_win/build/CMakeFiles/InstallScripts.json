@@ -1,0 +1,15 @@
+{
+	"InstallScripts" : 
+	[
+		"/Users/max/Desktop/Thesis/code/cpp/Amrex/build/cmake_install.cmake",
+		"/Users/max/Desktop/Thesis/code/cpp/Amrex/build/_deps/amrex_code-build/cmake_install.cmake",
+		"/Users/max/Desktop/Thesis/code/cpp/Amrex/build/_deps/amrex_code-build/Src/cmake_install.cmake",
+		"/Users/max/Desktop/Thesis/code/cpp/Amrex/build/_deps/amrex_code-build/Src/Base/cmake_install.cmake",
+		"/Users/max/Desktop/Thesis/code/cpp/Amrex/build/_deps/amrex_code-build/Src/Boundary/cmake_install.cmake",
+		"/Users/max/Desktop/Thesis/code/cpp/Amrex/build/_deps/amrex_code-build/Src/AmrCore/cmake_install.cmake",
+		"/Users/max/Desktop/Thesis/code/cpp/Amrex/build/_deps/amrex_code-build/Src/Amr/cmake_install.cmake",
+		"/Users/max/Desktop/Thesis/code/cpp/Amrex/build/_deps/amrex_code-build/Src/LinearSolvers/cmake_install.cmake",
+		"/Users/max/Desktop/Thesis/code/cpp/Amrex/build/_deps/amrex_code-build/Src/Particle/cmake_install.cmake"
+	],
+	"Parallel" : false
+}

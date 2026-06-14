@@ -1,0 +1,46 @@
+{
+	"sources" : 
+	[
+		{
+			"file" : "/Users/max/Desktop/Thesis/code/cpp/Amrex/_deps/amrex_code-subbuild/CMakeFiles/amrex_code-populate"
+		},
+		{
+			"file" : "/Users/max/Desktop/Thesis/code/cpp/Amrex/_deps/amrex_code-subbuild/CMakeFiles/amrex_code-populate.rule"
+		},
+		{
+			"file" : "/Users/max/Desktop/Thesis/code/cpp/Amrex/_deps/amrex_code-subbuild/CMakeFiles/amrex_code-populate-complete.rule"
+		},
+		{
+			"file" : "/Users/max/Desktop/Thesis/code/cpp/Amrex/_deps/amrex_code-subbuild/amrex_code-populate-prefix/src/amrex_code-populate-stamp/amrex_code-populate-build.rule"
+		},
+		{
+			"file" : "/Users/max/Desktop/Thesis/code/cpp/Amrex/_deps/amrex_code-subbuild/amrex_code-populate-prefix/src/amrex_code-populate-stamp/amrex_code-populate-configure.rule"
+		},
+		{
+			"file" : "/Users/max/Desktop/Thesis/code/cpp/Amrex/_deps/amrex_code-subbuild/amrex_code-populate-prefix/src/amrex_code-populate-stamp/amrex_code-populate-download.rule"
+		},
+		{
+			"file" : "/Users/max/Desktop/Thesis/code/cpp/Amrex/_deps/amrex_code-subbuild/amrex_code-populate-prefix/src/amrex_code-populate-stamp/amrex_code-populate-install.rule"
+		},
+		{
+			"file" : "/Users/max/Desktop/Thesis/code/cpp/Amrex/_deps/amrex_code-subbuild/amrex_code-populate-prefix/src/amrex_code-populate-stamp/amrex_code-populate-mkdir.rule"
+		},
+		{
+			"file" : "/Users/max/Desktop/Thesis/code/cpp/Amrex/_deps/amrex_code-subbuild/amrex_code-populate-prefix/src/amrex_code-populate-stamp/amrex_code-populate-patch.rule"
+		},
+		{
+			"file" : "/Users/max/Desktop/Thesis/code/cpp/Amrex/_deps/amrex_code-subbuild/amrex_code-populate-prefix/src/amrex_code-populate-stamp/amrex_code-populate-test.rule"
+		},
+		{
+			"file" : "/Users/max/Desktop/Thesis/code/cpp/Amrex/_deps/amrex_code-subbuild/amrex_code-populate-prefix/src/amrex_code-populate-stamp/amrex_code-populate-update.rule"
+		}
+	],
+	"target" : 
+	{
+		"labels" : 
+		[
+			"amrex_code-populate"
+		],
+		"name" : "amrex_code-populate"
+	}
+}
