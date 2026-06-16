@@ -66,7 +66,7 @@ void apply_hydrostatic_boundaries_1D(amrex::MultiFab& u, const amrex::Geometry& 
     for (amrex::MFIter mfi(u); mfi.isValid(); ++mfi) {
         const amrex::Box& gbx = mfi.growntilebox(); 
         auto const& arr = u.array(mfi);
-        auto const& eq = E_center->array(mfi); // The exact analytical array
+        auto const& eq = E_center->array(mfi); 
 
         amrex::ParallelFor(gbx, [=] AMREX_GPU_DEVICE(int i, int j, int k) {
             // Overwrite anything outside the physical domain with exact hydrostatic states
@@ -155,7 +155,6 @@ void compute_wb_flux_1D(const amrex::MultiFab& u, amrex::MultiFab& flux, const a
             
             double r_face = get_r(i) + 0.5 * dr;
 
-            // 4. 6-Point Spatial Correction
             for (int c = 0; c < 3; ++c) {
                 double d2f = (
                     - (5.0/48.0)  * get_r(i-2) * F(i-2, c)
@@ -196,13 +195,8 @@ void get_rhs_local_equilibrium_1D(const amrex::MultiFab& u, amrex::MultiFab& Rhs
                 double Div_E_r  = (f_eq(i,j,k,c)  - f_eq(i-1,j,k,c))  / (r_i * dr);
 
                 double Sr = 0.0;
-                if (c == 1) { // Momentum scaled strictly by density ratio
+                if (c == 1) { 
                     Sr = (u_arr(i,j,k,0) / Ec(i,j,k,0)) * Div_E_r;
-                }
-                if (std::isnan(dFdr_act) || std::isnan(Sr) || std::isnan(u_arr(i,j,k,0))) {
-                    printf("NaN detected at i=%d, c=%d | u_rho=%.6e, Ec_rho=%.6e, Div_E_r=%.6e\n", 
-                            i, c, u_arr(i,j,k,0), Ec(i,j,k,0), Div_E_r);
-                    amrex::Abort("NaN");
                 }
                 rhs(i,j,k,c) = -dFdr_act + Sr;
             }
@@ -221,12 +215,11 @@ int main(int argc, char* argv[]) {
         amrex::Box domain(amrex::IntVect(AMREX_D_DECL(0,0,0)), amrex::IntVect(AMREX_D_DECL(N-1,0,0)));
         amrex::RealBox real_box({AMREX_D_DECL(1.0, 0.0, 0.0)}, {AMREX_D_DECL(3.0, 1.0, 1.0)});
         
-        // 1. Turn OFF domain periodicity so custom hydrostatic edges apply
         amrex::Array<int,AMREX_SPACEDIM> is_periodic{AMREX_D_DECL(0, 0, 0)};
         amrex::Geometry geom(domain, real_box, amrex::CoordSys::cartesian, is_periodic);
 
         amrex::BoxArray ba(domain);
-        ba.maxSize(128); 
+        ba.maxSize(32); 
         amrex::DistributionMapping dm(ba);
 
         E_center = new amrex::MultiFab(ba, dm, 3, 3);
