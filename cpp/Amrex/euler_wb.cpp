@@ -14,36 +14,32 @@
 
 #include "../weno_lib.hpp"
 
-
+// =========================================================
+// 1. Setup and Parameters (Isothermal Equilibrium Test)
+// =========================================================
 constexpr int N = 64; 
 constexpr int m = 1; // 1: Cylindrical, 2: Spherical
 constexpr double dr = 2.0 / N; 
 constexpr double gamma_const = 5.0 / 3.0; 
 
-constexpr double alpha_0 = 5.0; 
-constexpr double a_param = 10.0; 
-constexpr double b_param = 0.0;  
-
 inline AMREX_GPU_DEVICE double get_r(int i) { return 0.0 + (i + 0.5) * dr; } 
 
-inline AMREX_GPU_DEVICE double rho_0(double xi) {
-    return 1.0 + std::exp(-a_param * a_param * (xi - b_param) * (xi - b_param));
+// Arbitrary density profile to show balance holds regardless of mass distribution
+inline AMREX_GPU_DEVICE double rho_0(double r) {
+    return 1.0 + 0.5 * std::sin(M_PI * r); 
 }
 
-inline AMREX_GPU_DEVICE void exact_sol(double xi, double t, double& rho, double& rhou, double& E) {
-    double alpha_t = alpha_0 / (1.0 + alpha_0 * t);
-    double amp_rho = std::pow(alpha_t / alpha_0, 1.0 + m);
-    double xi_0 = xi * (alpha_t / alpha_0);
-    rho = amp_rho * rho_0(xi_0);
-    
-    double v = alpha_t * xi;
-    rhou = rho * v;
-    
-    double p = (1.0 / gamma_const) * std::pow(alpha_t / alpha_0, gamma_const * (m + 1.0));
-    E = p / (gamma_const - 1.0) + 0.5 * rho * v * v;
+// Exact solution is a stationary state (u=0) with uniform pressure (p=1)
+inline AMREX_GPU_DEVICE void exact_sol(double r, double t, double& rho, double& rhou, double& E) {
+    rho = rho_0(r);
+    rhou = 0.0; // Fluid at rest
+    double p = 1.0; // Uniform pressure balances the expanding geometry
+    E = p / (gamma_const - 1.0); // Kinetic energy is zero
 }
 
-
+// =========================================================
+// 2. Boundary Conditions
+// =========================================================
 void apply_boundaries(amrex::MultiFab& u, const amrex::Geometry& geom) {
     u.FillBoundary(geom.periodicity()); 
     const amrex::Box& domain = geom.Domain();
@@ -55,6 +51,7 @@ void apply_boundaries(amrex::MultiFab& u, const amrex::Geometry& geom) {
         auto const& arr = u.array(mfi);
         amrex::ParallelFor(mfi.growntilebox(), [=] AMREX_GPU_DEVICE(int i, int j, int k) {
             if (i < dom_lo) {
+                // Axisymmetric inner boundary (pole)
                 int dist = dom_lo - i; 
                 int sym_i = dom_lo + dist - 1; 
                 arr(i,j,k,0) =  arr(sym_i,j,k,0); 
@@ -62,32 +59,21 @@ void apply_boundaries(amrex::MultiFab& u, const amrex::Geometry& geom) {
                 arr(i,j,k,2) =  arr(sym_i,j,k,2); 
             } 
             else if (i > dom_hi) {
-                int ref_i = dom_hi; 
-                double r_ref = get_r(ref_i);
+                // For the well-balanced test, enforce the exact stationary state
                 double r_ghost = get_r(i);
-
-                // Extract reference physical state
-                double rho_ref = arr(ref_i,j,k,0);
-                double mom_ref = arr(ref_i,j,k,1);
-                double E_ref   = arr(ref_i,j,k,2);
-                
-                double v_ref = (mom_ref / rho_ref) ;
-                double p_ref = (gamma_const - 1.0) * (E_ref - 0.5 * rho_ref * v_ref * v_ref);
-
-                // Apply zero gradients
-                double rho_ghost = rho_ref;                    // d(rho)/dr = 0
-                double p_ghost   = p_ref;                      // d(p)/dr = 0
-                double v_ghost   = v_ref * (r_ghost / r_ref);  // d(v/r)/dr = 0 -> v/r = const
-
-                // Reconstruct conservative variables for the ghost cell
-                arr(i,j,k,0) = rho_ghost;
-                arr(i,j,k,1) = rho_ghost * v_ghost;
-                arr(i,j,k,2) = p_ghost / (gamma_const - 1.0) + 0.5 * rho_ghost * v_ghost * v_ghost;
+                double rho_e, rhou_e, E_e;
+                exact_sol(r_ghost, 0.0, rho_e, rhou_e, E_e);
+                arr(i,j,k,0) = rho_e;
+                arr(i,j,k,1) = rhou_e;
+                arr(i,j,k,2) = E_e;
             }
         });
     }
 }
 
+// =========================================================
+// 3. AFD-WENO Flux Function (Primitive Reconstruction)
+// =========================================================
 void compute_flux(const amrex::MultiFab& u, amrex::MultiFab& flux, const amrex::Geometry& geom) {
 #pragma omp parallel if (amrex::Gpu::notInLaunchRegion())
     for (amrex::MFIter mfi(u, amrex::TilingIfNotGPU()); mfi.isValid(); ++mfi) {
@@ -101,14 +87,17 @@ void compute_flux(const amrex::MultiFab& u, amrex::MultiFab& flux, const amrex::
         auto const& flx = flux.array(mfi);
 
         amrex::ParallelFor(flux_box, [=] AMREX_GPU_DEVICE(int i, int j, int k) {
-            
-            // We obtain primitive variables w from the conserved u
-            auto get_w = [&](int idx, int comp) {
+            if (i == -1) {
+                for (int c = 0; c < 3; ++c) flx(i,j,k,c) = 0.0;
+                return;
+            }
+
+            auto get_prim = [&](int idx, int comp) {
                 double r = u_arr(idx,j,k,0);
                 double rhou = u_arr(idx,j,k,1);
                 double E = u_arr(idx,j,k,2);
                 
-                double v = (rhou / r);
+                double v = (r > 1e-14) ? (rhou / r) : 0.0;
                 double p = (gamma_const - 1.0) * (E - 0.5 * r * v * v);
                 
                 if (comp == 0) return r;
@@ -116,40 +105,40 @@ void compute_flux(const amrex::MultiFab& u, amrex::MultiFab& flux, const amrex::
                 return p;
             };
 
-            double w_L[3], w_R[3];
+            double prim_L[3], prim_R[3];
 
             for (int c = 0; c < 3; ++c) {
                 double w_L_i, w_R_i, dwdr_i;
                 weno_ao_3_interpolation(
-                    get_w(i-2, c), get_w(i-1, c), get_w(i, c), 
-                    get_w(i+1, c), get_w(i+2, c), dr, w_L_i, w_R_i, dwdr_i
+                    get_prim(i-2, c), get_prim(i-1, c), get_prim(i, c), 
+                    get_prim(i+1, c), get_prim(i+2, c), dr, w_L_i, w_R_i, dwdr_i
                 );
-                w_L[c] = w_R_i;
+                prim_L[c] = w_R_i;
 
                 double w_L_ip1, w_R_ip1, dwdr_ip1;
                 weno_ao_3_interpolation(
-                    get_w(i-1, c), get_w(i, c), get_w(i+1, c), 
-                    get_w(i+2, c), get_w(i+3, c), dr, w_L_ip1, w_R_ip1, dwdr_ip1
+                    get_prim(i-1, c), get_prim(i, c), get_prim(i+1, c), 
+                    get_prim(i+2, c), get_prim(i+3, c), dr, w_L_ip1, w_R_ip1, dwdr_ip1
                 );
-                w_R[c] = w_L_ip1;
+                prim_R[c] = w_L_ip1;
             }
             
-            auto w_to_u = [&](const double* w, double* u) {
-                double r = w[0];
-                double v = w[1];
-                double p = w[2];
-                u[0] = r;
-                u[1] = r * v;
-                u[2] = p / (gamma_const - 1.0) + 0.5 * r * v * v;
+            auto prim_to_cons = [&](const double* prim, double* cons) {
+                double r = prim[0];
+                double v = prim[1];
+                double p = prim[2];
+                cons[0] = r;
+                cons[1] = r * v;
+                cons[2] = p / (gamma_const - 1.0) + 0.5 * r * v * v;
             };
 
             double u_L[3], u_R[3];
-            w_to_u(w_L, u_L);
-            w_to_u(w_R, u_R);
+            prim_to_cons(prim_L, u_L);
+            prim_to_cons(prim_R, u_R);
 
             auto get_phys_flux = [&](const double* state, double* h_out, double& p_out, double& v_out) {
                 double rho = state[0], m_mom = state[1], E = state[2];
-                v_out = (m_mom / rho);
+                v_out = (rho > 1e-14) ? (m_mom / rho) : 0.0;
                 p_out = (gamma_const - 1.0) * (E - 0.5 * m_mom * v_out);
                 h_out[0] = m_mom;
                 h_out[1] = m_mom * v_out + p_out;
@@ -194,6 +183,9 @@ void compute_flux(const amrex::MultiFab& u, amrex::MultiFab& flux, const amrex::
     }
 }
 
+// =========================================================
+// 4. RHS Assembly (With Inline Geometric Divergence Stencil)
+// =========================================================
 void get_rhs(const amrex::MultiFab& u, amrex::MultiFab& Rhs, const amrex::Geometry& geom) {
     amrex::MultiFab flux_act(u.boxArray(), u.DistributionMap(), 3, 1);
     compute_flux(u, flux_act, geom);
@@ -211,7 +203,7 @@ void get_rhs(const amrex::MultiFab& u, amrex::MultiFab& Rhs, const amrex::Geomet
             double rho = u_arr(i,j,k,0);
             double rhou = u_arr(i,j,k,1);
             double E = u_arr(i,j,k,2);
-            double v = (rhou / rho);
+            double v = (rho > 1e-14) ? (rhou / rho) : 0.0;
             double p = (gamma_const - 1.0) * (E - 0.5 * rho * v * v);
 
             auto get_f_ref = [&](int idx) {
@@ -243,11 +235,13 @@ void get_rhs(const amrex::MultiFab& u, amrex::MultiFab& Rhs, const amrex::Geomet
     }
 }
 
-
+// =========================================================
+// 5. Main Simulation
+// =========================================================
 int main(int argc, char* argv[]) {
     amrex::Initialize(argc, argv);
     { 
-        amrex::Print() << "Initializing Radial Wind Benchmark (m=" << m << ")...\n";
+        amrex::Print() << "Initializing Well-Balanced Benchmark (m=" << m << ")...\n";
         
         amrex::Box domain(amrex::IntVect(AMREX_D_DECL(0,0,0)), amrex::IntVect(AMREX_D_DECL(N-1,0,0)));
         amrex::RealBox real_box({AMREX_D_DECL(0.0, -1.0, -1.0)}, {AMREX_D_DECL(2.0, 1.0, 1.0)});
@@ -282,7 +276,10 @@ int main(int argc, char* argv[]) {
 
         amrex::Print() << "Starting Time Integration...\n";
         while (t < t_end) {
-            double dt = CFL * dr / 10.0; 
+            // Speed of sound c = sqrt(gamma * p / rho).
+            // Here min rho is 0.5, p is 1.0, so max c is approx sqrt(5/3 * 1 / 0.5)
+            double max_c = std::sqrt(gamma_const * 1.0 / 0.5); 
+            double dt = CFL * dr / max_c; 
             if (t + dt > t_end) dt = t_end - t;
 
             get_rhs(u, rhs, geom);
@@ -312,9 +309,8 @@ int main(int argc, char* argv[]) {
         for (amrex::MFIter mfi(u, amrex::TilingIfNotGPU()); mfi.isValid(); ++mfi) {
             auto const& arr = u.const_array(mfi);
             reduce_ops.eval(mfi.tilebox(), reduce_data, [=] AMREX_GPU_DEVICE(int i, int j, int k) -> ReduceTuple {
-                double rho_e, rhou_e, E_e;
-                exact_sol(get_r(i), t, rho_e, rhou_e, E_e);
-                double err = std::abs(arr(i,j,k,0) - rho_e); 
+                // For well-balanced property, we check if momentum strictly remained zero
+                double err = std::abs(arr(i,j,k,1) - 0.0); 
                 
                 double r_lo = i * dr, r_hi = (i + 1) * dr;    
                 double vol  = (std::pow(r_hi, m + 1.0) - std::pow(r_lo, m + 1.0)) / (m + 1.0);
@@ -328,10 +324,10 @@ int main(int argc, char* argv[]) {
         amrex::ParallelDescriptor::ReduceRealSum(l2_err);
         l2_err = std::sqrt(l2_err);
 
-        amrex::Print() << "\n--- Radial Wind Verification ---\n" << std::scientific << std::setprecision(8)
-                       << "L1 Error:    " << l1_err << "\nL2 Error:    " << l2_err << "\nL-inf Error: " << linf_err << "\nN: " << N << "\n";
+        amrex::Print() << "\n--- Well-Balanced Verification (Momentum Error) ---\n" << std::scientific << std::setprecision(8)
+                       << "L1 Error:    " << l1_err << "\nL2 Error:    " << l2_err << "\nL-inf Error: " << linf_err << "\n";
         
-        amrex::WriteSingleLevelPlotfile("plt_final", u, {"rho", "rhou", "E"}, geom, t, step);
+        amrex::WriteSingleLevelPlotfile("plt_wb_final", u, {"rho", "rhou", "E"}, geom, t, step);
     }
     amrex::Finalize();
     return 0;
