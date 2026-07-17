@@ -136,7 +136,7 @@ void weno_ao_5_3_interpolation(double um2, double um1, double u0, double up1, do
 // ========================================================================
 // Evaluated at face i+1/2 using f_centers from {i-1, i, i+1, i+2}
 void weno_ao_43_boundary(double fm1, double f0, double f1, double f2, double dx, 
-                         double& d1dx, double& d3dx) 
+                         double& d1dx, double& d3dx, double& d2dx2) 
 {
     double eps = 1e-36;
     double Hi = 0.85;
@@ -168,20 +168,122 @@ void weno_ao_43_boundary(double fm1, double f0, double f1, double f2, double dx,
 
     double tau = (std::abs(beta_c - beta1) + std::abs(beta_c - beta2)) / 2.0;
     
-    double tc = tau/(beta_c + eps); double wc = g_c * (1.0 + tc*tc);
-    double t1 = tau/(beta1  + eps); double w1 = g1  * (1.0 + t1*t1);
-    double t2 = tau/(beta2  + eps); double w2 = g2  * (1.0 + t2*t2);
+    double tc = tau/(beta_c + eps);
+    double wc = g_c * (1.0 + tc*tc);
+    double t1 = tau/(beta1  + eps);
+    double w1 = g1  * (1.0 + t1*t1);
+    double t2 = tau/(beta2  + eps);
+    double w2 = g2  * (1.0 + t2*t2);
     
     double ws = wc + w1 + w2;
     wc /= ws; w1 /= ws; w2 /= ws;
 
-    double d1_c  = fx_c  + fx3_c * (-3.0/20.0);
+  /*  double d1_c  = fx_c  + fx3_c * (-3.0/20.0);
     double d1_1  = fx1;
     double d1_2  = fx2;
     double d3_c  = 6.0 * fx3_c;
 
     d1dx = ((wc/g_c)*(d1_c - g1*d1_1 - g2*d1_2) + w1*d1_1 + w2*d1_2) / dx;
-    d3dx = ((wc/g_c) * d3_c) / dx;
+    d3dx = ((wc/g_c) * d3_c) / dx; */
+
+    // attempt to staright away get second derivative from the flux centres here:
+
+    double d2_c  = 2.0 * fx2_c;
+    double d2_1  = 2.0 * fx21;
+    double d2_2  = 2.0 * fx22;
+
+    d2dx2 = ((wc/g_c)*(d2_c - g1*d2_1 - g2*d2_2) + w1*d2_1 + w2*d2_2) / (dx*dx);
+}
+
+void weno_ao_63_boundary(double fm2, double fm1, double f0, double f1, double f2, double f3, 
+                         double dx, double& d2dx2, double& d4dx4) 
+{
+    double eps = 1e-36;
+    double Hi = 0.85;
+
+    // Variables to avoid writing coefficients twice 
+    double sum0 = f1 + f0;
+    double sum1 = f2 + fm1;
+    double sum2 = f3 + fm2;
+
+    double dif0 = f1 - f0;
+    double dif1 = f2 - fm1;
+    double dif2 = f3 - fm2;
+
+    // Large r=6 centered stencil Sr6zbc (Equation 59)
+    double fpt_c = (802.0*sum0 - 93.0*sum1 + 11.0*sum2) / 1440.0;
+    double fx_c  = (1794.0*dif0 - 43.0*dif1 + 3.0*dif2) / 1680.0;
+    double fx2_c = (-29.0*sum0 + 33.0*sum1 - 4.0*sum2) / 84.0;
+    double fx3_c = (37.0*dif0 - 14.0*dif1 + dif2) / 54.0;
+    double fx4_c = (2.0*sum0 - 3.0*sum1 + sum2) / 48.0;
+    double fx5_c = (10.0*dif0 - 5.0*dif1 + dif2) / 120.0;
+    
+    double beta_c = (fx_c + fx3_c/10.0 + fx5_c/126.0)*(fx_c + fx3_c/10.0 + fx5_c/126.0)
+                    + 13.0/3.0*(fx2_c+123.0/455.0*fx4_c)*(fx2_c+123.0/455.0*fx4_c)
+                    + 781.0/20.0*(fx3_c+26045.0/49203.0*fx5_c)*(fx3_c+26045.0/49203.0*fx5_c)
+                    + 1421461.0/2275.0*fx4_c*fx4_c
+                    + 21520059541.0/1377684.0*fx5_c*fx5_c; 
+
+    // Small left-biased Sr3zb1
+    double fx1  = f1 - f0;
+    double fx21 = (f1 - 2.0*f0 + fm1) / 2.0;
+
+    // Small right-biased Sr3zb2
+    double fx2  = f1 - f0;
+    double fx22 = (f2 - 2.0*f1 + f0) / 2.0;
+
+    double beta1 = fx1*fx1 + (13.0/3.0)*fx21*fx21;
+    double beta2 = fx2*fx2 + (13.0/3.0)*fx22*fx22;
+
+    double g_c = Hi;
+    double g1  = (1.0 - Hi) / 2.0;
+    double g2  = (1.0 - Hi) / 2.0;
+
+    double tau = (std::abs(beta_c - beta1) + std::abs(beta_c - beta2)) / 2.0;
+    
+    double tc = tau / (beta_c + eps);
+    double wc = g_c * (1.0 + tc*tc);
+    double t1 = tau / (beta1  + eps);
+    double w1 = g1  * (1.0 + t1*t1);
+    double t2 = tau / (beta2  + eps);
+    double w2 = g2  * (1.0 + t2*t2);
+    
+    double ws = wc + w1 + w2;
+    wc /= ws; w1 /= ws; w2 /= ws;
+
+    // --- EVEN DERIVATIVES FOR FLUX CORRECTIONS ---
+    
+    // The exact 2nd derivative of the 6th order polynomial Pr6zbc(x) evaluated at x=0
+    // d^2/dx^2 [ fpt + fx*L1 + fx2*L2 + fx3*L3 + fx4*L4 + fx5*L5 ]
+    // L2(0)'' = 2, L4(0)'' = -3/7
+    double d2_c = 2.0 * fx2_c - (3.0 / 7.0) * fx4_c;
+    double d2_1 = 2.0 * fx21;
+    double d2_2 = 2.0 * fx22;
+
+    // The exact 4th derivative of the 6th order polynomial Pr6zbc(x) evaluated at x=0
+    // L4(0)'''' = 24
+    double d4_c = 24.0 * fx4_c;
+
+    d2dx2 = ((wc/g_c)*(d2_c - g1*d2_1 - g2*d2_2) + w1*d2_1 + w2*d2_2) / (dx*dx);
+    
+    d4dx4 = ((wc/g_c) * d4_c) / (dx*dx*dx*dx);
+
+    /*
+
+    // L1'(0) = 1, L3'(0) = -3/20, L5'(0) = 5/336
+    double d1_c = fx_c - (3.0/20.0)*fx3_c + (5.0/336.0)*fx5_c;
+    
+    // L3'''(0) = 6, L5'''(0) = -5/3
+    double d3_c = 6.0 * fx3_c - (5.0/3.0)*fx5_c;
+    
+    // L5'''''(0) = 120
+    double d5_c = 120.0 * fx5_c;
+
+    d1dx = ((wc/g_c)*(d1_c - g1*fx1 - g2*fx2) + w1*fx1 + w2*fx2) / dx;
+    d3dx = ((wc/g_c)*d3_c) / (dx*dx*dx);
+    d5dx = ((wc/g_c)*d5_c) / (dx*dx*dx*dx*dx);
+    
+    */
 }
 
 #endif
