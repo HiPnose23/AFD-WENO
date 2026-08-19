@@ -95,17 +95,17 @@ void weno_ao_5_3_interpolation(double um2, double um1, double u0, double up1, do
     double b5 = ((ux5 + ux35/10.0)*(ux5 + ux35/10.0)
         + (13.0/3.0)*tmp5*tmp5
         + (781.0/20.0)*ux35*ux35
-        + (1421461.0/2275.0)*ux45*ux45 / 1e10);
+        + (1421461.0/2275.0)*ux45*ux45);
 
     // Linear weights
-    double gHi = 0.85; double gLo = 0.85;
+    double gHi = 0.85; double gLo = 0.85; 
     double g5  = gHi;
     double g2  = (1.0 - gHi) * gLo;
     double g1  = (1.0 - gHi) * (1.0 - gLo) / 2.0;
     double g3  = g1;
 
     // tau
-    double eps  = 1e-12;
+    double eps  = 1e-36;
     double tau5 = (std::abs(b5-b1) + std::abs(b5-b2) + std::abs(b5-b3)) / 3.0;
     double tau3 = 0.5*(std::abs(b2-b1) + std::abs(b2-b3));
 
@@ -199,7 +199,7 @@ void weno_ao_63_boundary(double fm2, double fm1, double f0, double f1, double f2
                          double dx, double& d2dx2, double& d4dx4) 
 {
     double eps = 1e-36;
-    double Hi = 0.85;
+    double Hi = 0.85; // changing this to 1.0 solves the order issue for spherical coords
 
     // Variables to avoid writing coefficients twice 
     double sum0 = f1 + f0;
