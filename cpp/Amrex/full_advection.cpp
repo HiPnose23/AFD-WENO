@@ -15,28 +15,28 @@
 #include "../weno_lib.hpp"
 
 // ==============================================================================
-// CONFIGURATION SWITCHES
+// CONFIG
 // ==============================================================================
 enum class Mode {RADIAL, MERIDIONAL, Z, AZIMUTHAL};
 
 
-constexpr Mode TEST_MODE = Mode::RADIAL;  
-constexpr int ORDER = 5;
+constexpr Mode TEST_MODE = Mode::MERIDIONAL;  
+constexpr int ORDER = 5; // 3 or 5
 constexpr int N = 64; 
 constexpr double alpha_v = 1.0;
 
 // RADIAL PARAMETERS
 constexpr int m = 1;   // 1: Cylindrical 2: Spherical
-constexpr double a_rad = 16.0;
-constexpr double b_rad = 0.5; 
+constexpr double a_rad = 10.0;
+constexpr double b_rad = 0.0; 
 
 // MERIDIONAL PARAMETERS
 // Only spherical
 constexpr double a_mer = 10.0;
-constexpr double b_mer =  0; 
+constexpr double b_mer = 0.0; 
 
 // Z PARAMETERS
-// only cylindircal
+// Only cylindircal
 constexpr double a_z = 5;
 constexpr double b_z = 0.5;
 
@@ -234,7 +234,7 @@ void run_radial_advection_3() {
 void compute_flux_rad_5(const amrex::MultiFab& u, amrex::MultiFab& flux, const amrex::Geometry& geom) {
     for (amrex::MFIter mfi(u); mfi.isValid(); ++mfi) {
         amrex::Box flux_box = mfi.validbox(); 
-        flux_box.growLo(0, 1); 
+        flux_box.growLo(0, 1);  
         
         auto const& u_arr = u.const_array(mfi);
         auto const& flx = flux.array(mfi);
@@ -244,7 +244,7 @@ void compute_flux_rad_5(const amrex::MultiFab& u, amrex::MultiFab& flux, const a
            
             auto point_f = [&](int idx) {
                 double xi = get_r(idx);
-                return std::pow(xi, m + 1) * alpha_v * u_arr(idx,j,k);
+                return xi * alpha_v * u_arr(idx,j,k);
             };
 
             // 5th-order interpolation for the flux face value
@@ -255,16 +255,16 @@ void compute_flux_rad_5(const amrex::MultiFab& u, amrex::MultiFab& flux, const a
             double f_face = w_R; 
             
             // 6th-order boundary interpolation for the exact 2nd and 4th derivatives
-            double d1f_r, d3f_r, d5f_r, d2dr2, d4dr4; 
+            double d2dr2, d4dr4; 
             weno_ao_63_boundary(
                 point_f(i-2), point_f(i-1), point_f(i), 
                 point_f(i+1), point_f(i+2), point_f(i+3), 
                 dr, d2dr2, d4dr4);
 
             double r_face = get_r(i) + 0.5 * dr;
+           
             
-            // Assemble using Eq. 10 from the paper
-            flx(i,j,k,0) = std::pow(r_face, m+1) * alpha_v * f_face 
+            flx(i,j,k,0) = r_face * alpha_v * f_face 
                          - (dr * dr / 24.0) * d2dr2 
                          + (7.0 * dr * dr * dr * dr / 5760.0) * d4dr4;
         });
@@ -279,11 +279,13 @@ void get_rhs_rad_5(const amrex::MultiFab& u, amrex::MultiFab& Rhs, const amrex::
         const amrex::Box& bx = mfi.validbox();
         auto const& f_act = flux_act.const_array(mfi); 
         auto const& rhs   = Rhs.array(mfi);
+        auto const& u_arr = u.const_array(mfi);
 
         amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE(int i, int j, int k) {
             double xi = get_r(i); 
-            double div_F = (f_act(i,j,k,0) - f_act(i-1,j,k,0)) / (std::pow(xi, m) * dr);     
-            rhs(i,j,k) = -div_F;
+            double div_F = (f_act(i,j,k,0) - f_act(i-1,j,k,0)) / dr;     
+            double src = m * alpha_v * u_arr(i,j,k);
+            rhs(i,j,k) = -div_F - src;
         });
     }
 }
@@ -301,7 +303,6 @@ void run_radial_advection_5() {
     ba.maxSize(16); 
     amrex::DistributionMapping dm(ba);
 
-    // MultiFabs for SSPRK(5,4)
     amrex::MultiFab u (ba, dm, 1, 3);
     amrex::MultiFab u0(ba, dm, 1, 3);
     amrex::MultiFab u1(ba, dm, 1, 3);
@@ -321,10 +322,10 @@ void run_radial_advection_5() {
     double t = 0.0, t_end = 1.0;
     double c_speed = alpha_v * 2.0; 
 
-    // Time scaling matching Section 6 of the Balsara paper (dt ~ dx^(5/4))
+    // Time scaling matching Section 6 of the Balsara paper 
     double N_base = 64.0;
     double base_CFL = 0.4;
-    double scaled_CFL = base_CFL * std::pow(N_base / (double)N, 0.25);
+    double scaled_CFL = base_CFL * std::pow(N_base / (double)N, 0.25); // Maybe wrong
     double dt = scaled_CFL * dr / c_speed;
 
     amrex::Print() << "Starting Time Integration... Scaled CFL = " << scaled_CFL << "\n";
@@ -334,7 +335,6 @@ void run_radial_advection_5() {
     while (t < t_end) {
         if (t + dt > t_end) dt = t_end - t;
 
-        // Save u^n
         amrex::MultiFab::Copy(u0, u, 0, 0, 1, 3);
 
         // --- Stage 1 ---
@@ -424,7 +424,7 @@ inline AMREX_GPU_DEVICE double exact_sol_mer(double theta, double t) {
     double Q_0 = 0.0;
     if (std::abs(theta_0 - b_mer) < (M_PI / a_mer)) {
         double arg = (1.0 + std::cos(a_mer * (theta_0 - b_mer))) / 2.0;
-        Q_0 = arg * arg;
+        Q_0 = arg * arg * arg * arg;
     }
     double exp = std::sin(theta_0) / std::sin(theta);
     return std::exp(-alpha_v * t) * exp * Q_0;
@@ -619,7 +619,7 @@ void compute_flux_mer_5(const amrex::MultiFab& u, amrex::MultiFab& flux, const a
             
             double f_face = w_R; 
             
-            double d1f_theta, d3f_theta, d5f_theta, d2dtheta2, d4dtheta4; 
+            double d2dtheta2, d4dtheta4; 
             weno_ao_63_boundary(
                 point_f(i-2), point_f(i-1), point_f(i), 
                 point_f(i+1), point_f(i+2), point_f(i+3), 
@@ -942,7 +942,7 @@ void compute_flux_z_5(const amrex::MultiFab& u, amrex::MultiFab& flux, const amr
             
             double f_face = w_R;
             
-            double d1f_z, d3f_z, d5f_z, d2dz2, d4dz4; 
+            double d2dz2, d4dz4; 
             weno_ao_63_boundary(
                 point_f(i-2), point_f(i-1), point_f(i), 
                 point_f(i+1), point_f(i+2), point_f(i+3), 
@@ -1266,7 +1266,7 @@ void compute_flux_azi_5(const amrex::MultiFab& u, amrex::MultiFab& flux, const a
             
             double f_face = w_R;
             
-            double d1f_phi, d3f_phi, d5f_phi, d2dphi2, d4dphi4; 
+            double d2dphi2, d4dphi4; 
             weno_ao_63_boundary(
                 point_f(i-2), point_f(i-1), point_f(i), 
                 point_f(i+1), point_f(i+2), point_f(i+3), 
