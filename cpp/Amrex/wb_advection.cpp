@@ -39,9 +39,9 @@
 // CONFIG
 // ==============================================================================
 enum class Mode { CARTESIAN, RADIAL };
-constexpr Mode TEST_MODE = Mode::CARTESIAN;
+constexpr Mode TEST_MODE = Mode::RADIAL;
 
-constexpr int m = 1; // 1 for Cylindrical, 2 for Spherical (RADIAL only)
+constexpr int m = 2; // 1 for Cylindrical, 2 for Spherical (RADIAL only)
 
 constexpr int N = 128;
 constexpr double alpha_v = 1.0;
@@ -50,10 +50,10 @@ constexpr int p_r = (m == 2) ? 1 : (m + 1);
 
 constexpr double k_eq = 5.0;
 
-constexpr double PERT_AMP = 0.0;
-constexpr double PERT_X = 1.0;
+constexpr double PERT_AMP = 1.0e-9;
+constexpr double PERT_X = 0.5;
 
-constexpr double T_END = 1.0;
+constexpr double T_END = 0.3;
 
 // GRID
 const double dx = 2.0 / N;
@@ -313,6 +313,16 @@ void run_scheme_5(bool use_wb, const amrex::BoxArray& ba,
         apply_boundaries(u, geom);
 
         t += dt; step++;
+        if(step==1){
+            double linf, l1;
+            deviation_norms(u, ba, dm, linf, l1);
+
+            amrex::Print() << std::scientific << std::setprecision(8)
+                   << "  steps: " << step << "\n"
+                   << "  L1  |u-u_e|: " << l1 << "\n"
+                   << "  Linf|u-u_e|: " << linf << "\n";
+
+        }
     }
 
     double linf, l1;
@@ -373,20 +383,7 @@ int main(int argc, char* argv[]) {
         amrex::MultiFab D_eq(ba, dm, 1, 0);
         D_eq.setVal(0.0);
         apply_operator_5(u_eq, D_eq, geom); // compute the operator of equilibrium state only once as it remains unchanged
-
-        amrex::MultiFab trunc(ba, dm, 1, 0);
-        trunc.setVal(0.0);
-        for (amrex::MFIter mfi(trunc); mfi.isValid(); ++mfi) {
-            auto const& ue_arr = u_eq.const_array(mfi);
-            auto const& d_eq   = D_eq.const_array(mfi);
-            auto const& t_arr  = trunc.array(mfi);
-            amrex::ParallelFor(mfi.validbox(), [=] AMREX_GPU_DEVICE(int i, int j, int k) {
-                t_arr(i,j,k) = std::abs(d_eq(i,j,k) - source_S(ue_arr(i,j,k), get_x(i))); // Check if there even is a error (between the flux divergence and source term at equilibrium) for the non wb scheme
-            });
-        }
-        amrex::Print() << std::scientific << std::setprecision(8)
-                       << "\nmax | D[u_e] - S(u_e) | = " << trunc.norm0() << "\n";
-
+ 
         amrex::MultiFab res(ba, dm, 1, 0);
         get_rhs_5(u_eq, u_eq, D_eq, res, false, geom);
         amrex::Print() << "residual at equilibrium, standard      = " << res.norm0() << "\n";

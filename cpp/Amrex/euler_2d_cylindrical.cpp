@@ -105,15 +105,13 @@ inline AMREX_GPU_DEVICE void exact_wind_state(double R, double z, double U[4]) {
     double V[4];
 
     if (r <= 1.0) {
-        double rc = 2.0 * std::max(dR, dz);
-        double r_eff = std::sqrt(r*r + rc*rc);
+        constexpr double c_sw = 3.0e-2;
+        const double rr = std::max(r, 1.0e-12);
+        const double v_mag = std::tanh(5.0 * rr);
 
-        double v_mag = std::tanh(5.0 * r_eff);
-        double c_sw = 3.0e-2;
-
-        V[0] = 1.0 / (v_mag * r_eff * r_eff + 1e-12);
-        V[1] = v_mag * (R / r_eff);
-        V[2] = v_mag * (z / r_eff);
+        V[0] = 1.0 / (v_mag * rr * rr);   // rho v r^2 = 1
+        V[1] = v_mag * (R / rr);
+        V[2] = v_mag * (z / rr);
         V[3] = V[0] * (c_sw * c_sw) / Gamma;
     } else {
         double c_sa = 4.0e-3;
@@ -122,60 +120,70 @@ inline AMREX_GPU_DEVICE void exact_wind_state(double R, double z, double U[4]) {
         V[2] = 0.0;
         V[3] = V[0] * (c_sa * c_sa) / Gamma;
     }
-    V[0] = 1.0;
-    V[1] = 0.0;
-    V[2] = 0.0;
-    V[3] = 1.0;
+
     prim_to_cons(V, U);
 }
 
 void apply_boundaries(amrex::MultiFab& u, const amrex::Geometry& geom) {
-    u.FillBoundary(geom.periodicity());
     const amrex::Box& domain = geom.Domain();
-    int dom_lo_R = domain.smallEnd(0);
-    int dom_hi_R = domain.bigEnd(0);
-    int dom_lo_z = domain.smallEnd(1);
-    int dom_hi_z = domain.bigEnd(1);
+    const int dom_lo_R = domain.smallEnd(0);
+    const int dom_hi_R = domain.bigEnd(0);
+    const int dom_lo_z = domain.smallEnd(1);
+    const int dom_hi_z = domain.bigEnd(1);
 
+    constexpr double rho_floor = 1.0e-12;
+    constexpr double p_floor   = 1.0e-12;
+
+    // (1) wind region + floors, valid cells only
     for (amrex::MFIter mfi(u); mfi.isValid(); ++mfi) {
         auto const& arr = u.array(mfi);
-        amrex::Box grown_box = mfi.growntilebox();
+        amrex::ParallelFor(mfi.validbox(), [=] AMREX_GPU_DEVICE(int i, int j, int k) {
+            const double R_val = get_R(i);
+            const double z_val = get_z(j);
 
-        amrex::ParallelFor(grown_box, [=] AMREX_GPU_DEVICE(int i, int j, int k) {
-            double R_val = get_R(i);
-            double z_val = get_z(j);
-            double r = std::sqrt(R_val*R_val + z_val*z_val);
-
-            if (r <= 1.0 && i >= dom_lo_R && i <= dom_hi_R && j >= dom_lo_z && j <= dom_hi_z) {
+            if (R_val*R_val + z_val*z_val <= 1.0) {
                 double U_wind[4];
                 exact_wind_state(R_val, z_val, U_wind);
                 for (int n = 0; n < 4; ++n) arr(i,j,k,n) = U_wind[n];
+                return;
             }
+
+            double U_loc[4] = { arr(i,j,k,0), arr(i,j,k,1), arr(i,j,k,2), arr(i,j,k,3) };
+            double V_loc[4];
+            cons_to_prim(U_loc, V_loc);
+            if (V_loc[0] < rho_floor || V_loc[3] < p_floor) {
+                V_loc[0] = std::max(V_loc[0], rho_floor);
+                V_loc[3] = std::max(V_loc[3], p_floor);
+                prim_to_cons(V_loc, U_loc);
+                for (int n = 0; n < 4; ++n) arr(i,j,k,n) = U_loc[n];
+            }
+        });
+    }
+
+    u.FillBoundary(geom.periodicity());
+
+    // (2) physical ghost cells only: axis reflection + outflow
+    for (amrex::MFIter mfi(u); mfi.isValid(); ++mfi) {
+        auto const& arr = u.array(mfi);
+        amrex::ParallelFor(mfi.growntilebox(), [=] AMREX_GPU_DEVICE(int i, int j, int k) {
+            if (i >= dom_lo_R && i <= dom_hi_R && j >= dom_lo_z && j <= dom_hi_z) return;
 
             int i_idx = i;
             double sign_vR = 1.0;
-            if (i < dom_lo_R) {
-                int dist = dom_lo_R - i;
-                i_idx = dom_lo_R + dist - 1;
-                sign_vR = -1.0;
-            } else if (i > dom_hi_R) {
-                i_idx = dom_hi_R;
-            }
+            if (i < dom_lo_R) { i_idx = dom_lo_R + (dom_lo_R - i) - 1; sign_vR = -1.0; }
+            else if (i > dom_hi_R) { i_idx = dom_hi_R; }
 
             int j_idx = j;
             if (j < dom_lo_z) j_idx = dom_lo_z;
             else if (j > dom_hi_z) j_idx = dom_hi_z;
 
-            if (i != i_idx || j != j_idx) {
-                arr(i,j,k,0) = arr(i_idx,j_idx,k,0);
-                arr(i,j,k,1) = arr(i_idx,j_idx,k,1) * sign_vR;
-                arr(i,j,k,2) = arr(i_idx,j_idx,k,2);
-                arr(i,j,k,3) = arr(i_idx,j_idx,k,3);
-            }
+            arr(i,j,k,0) = arr(i_idx,j_idx,k,0);
+            arr(i,j,k,1) = arr(i_idx,j_idx,k,1) * sign_vR;
+            arr(i,j,k,2) = arr(i_idx,j_idx,k,2);
+            arr(i,j,k,3) = arr(i_idx,j_idx,k,3);
         });
     }
 }
-
 void compute_flux_R_5(const amrex::MultiFab& u, amrex::MultiFab& flux, const amrex::Geometry& geom) {
     for (amrex::MFIter mfi(u); mfi.isValid(); ++mfi) {
         amrex::Box flux_box = mfi.validbox();
@@ -232,9 +240,9 @@ void compute_flux_R_5(const amrex::MultiFab& u, amrex::MultiFab& flux, const amr
 
             double s_L = std::min(V_L[1] - cs_L, V_R[1] - cs_R);
             double s_R = std::max(V_L[1] + cs_L, V_R[1] + cs_R);
-            double s_max = std::max(std::abs(s_L), std::abs(s_R));
+           /* double s_max = std::max(std::abs(s_L), std::abs(s_R));
             s_L = -s_max;
-            s_R = s_max;
+            s_R = s_max; */
 
             double F_HLL[4];
             if (s_L >= 0.0) {
@@ -334,9 +342,9 @@ void compute_flux_Z_5(const amrex::MultiFab& u, amrex::MultiFab& flux, const amr
 
             double s_L = std::min(V_L[2] - cs_L, V_R[2] - cs_R);
             double s_R = std::max(V_L[2] + cs_L, V_R[2] + cs_R);
-            double s_max = std::max(std::abs(s_L), std::abs(s_R));
+            /*double s_max = std::max(std::abs(s_L), std::abs(s_R));
             s_L = -s_max;
-            s_R = s_max;
+            s_R = s_max;*/
 
             double F_HLL[4];
             if (s_L >= 0.0) {
@@ -429,7 +437,7 @@ int main(int argc, char* argv[]) {
     amrex::Geometry geom(domain, real_box, amrex::CoordSys::cartesian, is_periodic);
 
     amrex::BoxArray ba(domain);
-    ba.maxSize(32);
+    ba.maxSize(64);
     amrex::DistributionMapping dm(ba);
 
     amrex::MultiFab u  (ba, dm, 4, 3);
@@ -452,10 +460,11 @@ int main(int argc, char* argv[]) {
 
     double t = 0.0, t_end = 20.0;
     double dt = compute_dt(u);
+    bool plotted = 0;
 
     amrex::Print() << "Starting Time Integration... dt = " << dt << "\n";
     int step = 0;
-    amrex::WriteSingleLevelPlotfile("plt_init", u, {"rho", "rho_vR", "rho_vz", "E"}, geom, t, step);
+
     while (t < t_end) {
         dt = compute_dt(u);
         if (t + dt > t_end) dt = t_end - t;
@@ -503,13 +512,17 @@ int main(int argc, char* argv[]) {
 
         t += dt;
         step++;
+        if(t>2 && !plotted) {
+            amrex::WriteSingleLevelPlotfile("plt_euler_t2", u, {"rho", "rho_vR", "rho_vz", "E"}, geom, t, step);
+            plotted = true;
+        }
 
         if (step % 10 == 0) {
             amrex::Print() << "Step " << step << " | Time: " << t << " / " << t_end << "\n";
         }
     }
 
-    amrex::WriteSingleLevelPlotfile("plt_final", u, {"rho", "rho_vR", "rho_vz", "E"}, geom, t, step);
+    amrex::WriteSingleLevelPlotfile("plt_euler", u, {"rho", "rho_vR", "rho_vz", "E"}, geom, t, step);
     amrex::Finalize();
     return 0;
 }

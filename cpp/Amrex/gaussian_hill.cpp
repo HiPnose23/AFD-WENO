@@ -22,12 +22,12 @@
 // ==============================================================================
 // CONFIG
 // ==============================================================================
-constexpr int N_THETA = 64;
+constexpr int N_THETA = 128;
 constexpr int N_PHI = 2 * N_THETA;
 constexpr double alpha = M_PI / 2.0;
 constexpr double u0 = 2.0 * M_PI;
 constexpr double b0 = 5.0;
-constexpr double a0 = 1;
+constexpr double a0 = 0.95;
 constexpr double theta_c = M_PI / 2.0;
 constexpr double phi_c = 3.0 * M_PI / 2.0;
 

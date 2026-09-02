@@ -26,7 +26,7 @@ constexpr int N = 64;
 constexpr double alpha_v = 1.0;
 
 // RADIAL PARAMETERS
-constexpr int m = 1;   // 1: Cylindrical 2: Spherical
+constexpr int m = 2;   // 0: Cartesian 1: Cylindrical 2: Spherical
 constexpr double a_rad = 10.0;
 constexpr double b_rad = 0.0; 
 
@@ -199,30 +199,43 @@ void run_radial_advection_3() {
     }
     BL_PROFILE_VAR_STOP(pmain); 
 
-    amrex::ReduceOps<amrex::ReduceOpMax, amrex::ReduceOpSum, amrex::ReduceOpSum> reduce_ops;
-    amrex::ReduceData<double, double, double> reduce_data(reduce_ops);
-    using ReduceTuple = typename amrex::ReduceData<double, double, double>::Type;
+    amrex::ReduceOps<amrex::ReduceOpMax, amrex::ReduceOpSum, amrex::ReduceOpSum, amrex::ReduceOpSum, amrex::ReduceOpSum> reduce_ops;
+    amrex::ReduceData<double, double, double, double, double> reduce_data(reduce_ops);
+    using ReduceTuple = typename amrex::ReduceData<double, double, double, double, double>::Type;
 
     for (amrex::MFIter mfi(u); mfi.isValid(); ++mfi) {
-        auto const& arr = u.const_array(mfi);
-        reduce_ops.eval(mfi.validbox(), reduce_data, [=] AMREX_GPU_DEVICE(int i, int j, int k) -> ReduceTuple {
+    auto const& arr = u.const_array(mfi);
+    reduce_ops.eval(mfi.validbox(), reduce_data,
+        [=] AMREX_GPU_DEVICE(int i, int j, int k) -> ReduceTuple {
             double exact = exact_sol_rad(get_r(i), t);
-            double err = std::abs(arr(i,j,k) - exact);
-            double r_lo = i * dr;          
-            double r_hi = (i + 1) * dr;    
-            double vol  = (std::pow(r_hi, m + 1.0) - std::pow(r_lo, m + 1.0)) / (m + 1.0);
-            return {err, err * vol, err * err * vol};
+            double err   = std::abs(arr(i,j,k) - exact);
+
+            double r_c = get_r(i);
+            double w   = std::pow(r_c, (double)m) * dr;   // r^2 dr for m = 2
+
+            return {err, err * w, err * err * w, err, w};
         });
     }
+    // Try new L1 which is like the inf but reducesum + divide by N
 
-    auto [linf_err, l1_err, l2_err] = reduce_data.value();
-    amrex::ParallelDescriptor::ReduceRealMax(linf_err);
-    amrex::ParallelDescriptor::ReduceRealSum(l1_err);
-    amrex::ParallelDescriptor::ReduceRealSum(l2_err);
-    l2_err = std::sqrt(l2_err);
+    ReduceTuple hv = reduce_data.value();
+    double linf   = amrex::get<0>(hv);
+    double num    = amrex::get<1>(hv);
+    double l2num  = amrex::get<2>(hv);
+    double sum    = amrex::get<3>(hv);
+    double wsum   = amrex::get<4>(hv);
 
+    amrex::ParallelDescriptor::ReduceRealMax(linf);
+    amrex::ParallelDescriptor::ReduceRealSum(num);
+    amrex::ParallelDescriptor::ReduceRealSum(l2num);
+    amrex::ParallelDescriptor::ReduceRealSum(sum);
+    amrex::ParallelDescriptor::ReduceRealSum(wsum);
+
+    double l1_weighted = num / wsum;              // L1 variant for AFD
+    double l1_plain    = sum / (double)N;    // unweighted
+    double l2_weighted = std::sqrt(l2num / wsum);
     amrex::Print() << "\n--- Advection Benchmark Verification ---\n" << std::scientific << std::setprecision(8)
-    << "L1 Error:    " << l1_err << "\nL2 Error:    " << l2_err << "\nL-inf Error: " << linf_err << "\nN: " << N << "\n";
+    << "L1 Error:    " << l1_plain << "\nL1 Error (Unweighted):    " << l1_plain << "\nL-inf Error: " << linf << "\nN: " << N << "\n";
     
     amrex::WriteSingleLevelPlotfile("plt_final", u, {"u"}, geom, t, step);
 }
@@ -325,7 +338,7 @@ void run_radial_advection_5() {
     // Time scaling matching Section 6 of the Balsara paper 
     double N_base = 64.0;
     double base_CFL = 0.4;
-    double scaled_CFL = base_CFL * std::pow(N_base / (double)N, 0.25); // Maybe wrong
+    double scaled_CFL = base_CFL * std::pow(N_base / (double)N, 0.25); 
     double dt = scaled_CFL * dr / c_speed;
 
     amrex::Print() << "Starting Time Integration... Scaled CFL = " << scaled_CFL << "\n";
@@ -380,30 +393,43 @@ void run_radial_advection_5() {
     }
     BL_PROFILE_VAR_STOP(pmain); 
 
-    amrex::ReduceOps<amrex::ReduceOpMax, amrex::ReduceOpSum, amrex::ReduceOpSum> reduce_ops;
-    amrex::ReduceData<double, double, double> reduce_data(reduce_ops);
-    using ReduceTuple = typename amrex::ReduceData<double, double, double>::Type;
+    amrex::ReduceOps<amrex::ReduceOpMax, amrex::ReduceOpSum, amrex::ReduceOpSum, amrex::ReduceOpSum, amrex::ReduceOpSum> reduce_ops;
+    amrex::ReduceData<double, double, double, double, double> reduce_data(reduce_ops);
+    using ReduceTuple = typename amrex::ReduceData<double, double, double, double, double>::Type;
 
     for (amrex::MFIter mfi(u); mfi.isValid(); ++mfi) {
-        auto const& arr = u.const_array(mfi);
-        reduce_ops.eval(mfi.validbox(), reduce_data, [=] AMREX_GPU_DEVICE(int i, int j, int k) -> ReduceTuple {
+    auto const& arr = u.const_array(mfi);
+    reduce_ops.eval(mfi.validbox(), reduce_data,
+        [=] AMREX_GPU_DEVICE(int i, int j, int k) -> ReduceTuple {
             double exact = exact_sol_rad(get_r(i), t);
-            double err = std::abs(arr(i,j,k) - exact);
-            double r_lo = i * dr;          
-            double r_hi = (i + 1) * dr;    
-            double vol  = (std::pow(r_hi, m + 1.0) - std::pow(r_lo, m + 1.0)) / (m + 1.0);
-            return {err, err * vol, err * err * vol};
+            double err   = std::abs(arr(i,j,k) - exact);
+
+            double r_c = get_r(i);
+            double w   = std::pow(r_c, (double)m) * dr;   // r^2 dr for m = 2
+
+            return {err, err * w, err * err * w, err, w};
         });
     }
+    // Try new L1 which is like the inf but reducesum + divide by N
 
-    auto [linf_err, l1_err, l2_err] = reduce_data.value();
-    amrex::ParallelDescriptor::ReduceRealMax(linf_err);
-    amrex::ParallelDescriptor::ReduceRealSum(l1_err);
-    amrex::ParallelDescriptor::ReduceRealSum(l2_err);
-    l2_err = std::sqrt(l2_err);
+    ReduceTuple hv = reduce_data.value();
+    double linf   = amrex::get<0>(hv);
+    double num    = amrex::get<1>(hv);
+    double l2num  = amrex::get<2>(hv);
+    double sum    = amrex::get<3>(hv);
+    double wsum   = amrex::get<4>(hv);
 
-    amrex::Print() << "\n--- Advection Benchmark Verification (5th Order) ---\n" << std::scientific << std::setprecision(8)
-    << "L1 Error:    " << l1_err << "\nL2 Error:    " << l2_err << "\nL-inf Error: " << linf_err << "\nN: " << N << "\n";
+    amrex::ParallelDescriptor::ReduceRealMax(linf);
+    amrex::ParallelDescriptor::ReduceRealSum(num);
+    amrex::ParallelDescriptor::ReduceRealSum(l2num);
+    amrex::ParallelDescriptor::ReduceRealSum(sum);
+    amrex::ParallelDescriptor::ReduceRealSum(wsum);
+
+    double l1_weighted = num / wsum;              // L1 variant for AFD
+    double l1_plain    = sum / (double)N;    // unweighted
+    double l2_weighted = std::sqrt(l2num / wsum);
+    amrex::Print() << "\n--- Advection Benchmark Verification ---\n" << std::scientific << std::setprecision(8)
+    << "L1 Error:    " << l1_plain << "\nL1 Error (Unweighted):    " << l1_plain << "\nL-inf Error: " << linf << "\nN: " << N << "\n";
     
     amrex::WriteSingleLevelPlotfile("plt_final", u, {"u"}, geom, t, step);
 }
@@ -565,30 +591,44 @@ void run_meridional_advection_3() {
     }
     BL_PROFILE_VAR_STOP(pmain); 
 
-    amrex::ReduceOps<amrex::ReduceOpMax, amrex::ReduceOpSum, amrex::ReduceOpSum> reduce_ops;
-    amrex::ReduceData<double, double, double> reduce_data(reduce_ops);
-    using ReduceTuple = typename amrex::ReduceData<double, double, double>::Type;
+   
+ amrex::ReduceOps<amrex::ReduceOpMax, amrex::ReduceOpSum, amrex::ReduceOpSum, amrex::ReduceOpSum, amrex::ReduceOpSum> reduce_ops;
+    amrex::ReduceData<double, double, double, double, double> reduce_data(reduce_ops);
+    using ReduceTuple = typename amrex::ReduceData<double, double, double, double, double>::Type;
 
     for (amrex::MFIter mfi(u); mfi.isValid(); ++mfi) {
-        auto const& arr = u.const_array(mfi);
-        reduce_ops.eval(mfi.validbox(), reduce_data, [=] AMREX_GPU_DEVICE(int i, int j, int k) -> ReduceTuple {
+    auto const& arr = u.const_array(mfi);
+    reduce_ops.eval(mfi.validbox(), reduce_data,
+        [=] AMREX_GPU_DEVICE(int i, int j, int k) -> ReduceTuple {
             double exact = exact_sol_mer(get_theta(i), t);
-            double err = std::abs(arr(i,j,k) - exact);
-            double theta_lo = i * dtheta;          
-            double theta_hi = (i + 1) * dtheta;    
-            double vol  = std::cos(theta_lo) - std::cos(theta_hi);
-            return {err, err * vol, err * err * vol};
+            double err   = std::abs(arr(i,j,k) - exact);
+
+            double r_c = get_r(i);
+            double w   = std::pow(r_c, (double)m) * dr;   // r^2 dr for m = 2
+
+            return {err, err * w, err * err * w, err, w};
         });
     }
+    // Try new L1 which is like the inf but reducesum + divide by N
 
-    auto [linf_err, l1_err, l2_err] = reduce_data.value();
-    amrex::ParallelDescriptor::ReduceRealMax(linf_err);
-    amrex::ParallelDescriptor::ReduceRealSum(l1_err);
-    amrex::ParallelDescriptor::ReduceRealSum(l2_err);
-    l2_err = std::sqrt(l2_err);
+    ReduceTuple hv = reduce_data.value();
+    double linf   = amrex::get<0>(hv);
+    double num    = amrex::get<1>(hv);
+    double l2num  = amrex::get<2>(hv);
+    double sum    = amrex::get<3>(hv);
+    double wsum   = amrex::get<4>(hv);
 
+    amrex::ParallelDescriptor::ReduceRealMax(linf);
+    amrex::ParallelDescriptor::ReduceRealSum(num);
+    amrex::ParallelDescriptor::ReduceRealSum(l2num);
+    amrex::ParallelDescriptor::ReduceRealSum(sum);
+    amrex::ParallelDescriptor::ReduceRealSum(wsum);
+
+    double l1_weighted = num / wsum;              // L1 variant for AFD
+    double l1_plain    = sum / (double)N;    // unweighted
+    double l2_weighted = std::sqrt(l2num / wsum);
     amrex::Print() << "\n--- Advection Benchmark Verification ---\n" << std::scientific << std::setprecision(8)
-                   << "L1 Error:    " << l1_err << "\nL2 Error:    " << l2_err << "\nL-inf Error: " << linf_err << "\nN: " << N << "\n";
+    << "L1 Error:    " << l1_plain << "\nL1 Error (Unweighted):    " << l1_plain << "\nL-inf Error: " << linf << "\nN: " << N << "\n";
     
     amrex::WriteSingleLevelPlotfile("plt_final", u, {"u"}, geom, t, step);
 }
@@ -740,30 +780,44 @@ void run_meridional_advection_5() {
     }
     BL_PROFILE_VAR_STOP(pmain); 
 
-    amrex::ReduceOps<amrex::ReduceOpMax, amrex::ReduceOpSum, amrex::ReduceOpSum> reduce_ops;
-    amrex::ReduceData<double, double, double> reduce_data(reduce_ops);
-    using ReduceTuple = typename amrex::ReduceData<double, double, double>::Type;
+    
+ amrex::ReduceOps<amrex::ReduceOpMax, amrex::ReduceOpSum, amrex::ReduceOpSum, amrex::ReduceOpSum, amrex::ReduceOpSum> reduce_ops;
+    amrex::ReduceData<double, double, double, double, double> reduce_data(reduce_ops);
+    using ReduceTuple = typename amrex::ReduceData<double, double, double, double, double>::Type;
 
     for (amrex::MFIter mfi(u); mfi.isValid(); ++mfi) {
-        auto const& arr = u.const_array(mfi);
-        reduce_ops.eval(mfi.validbox(), reduce_data, [=] AMREX_GPU_DEVICE(int i, int j, int k) -> ReduceTuple {
+    auto const& arr = u.const_array(mfi);
+    reduce_ops.eval(mfi.validbox(), reduce_data,
+        [=] AMREX_GPU_DEVICE(int i, int j, int k) -> ReduceTuple {
             double exact = exact_sol_mer(get_theta(i), t);
-            double err = std::abs(arr(i,j,k) - exact);
-            double theta_lo = i * dtheta;          
-            double theta_hi = (i + 1) * dtheta;    
-            double vol  = std::cos(theta_lo) - std::cos(theta_hi);
-            return {err, err * vol, err * err * vol};
+            double err   = std::abs(arr(i,j,k) - exact);
+
+            double r_c = get_r(i);
+            double w   = std::pow(r_c, (double)m) * dr;   // r^2 dr for m = 2
+
+            return {err, err * w, err * err * w, err, w};
         });
     }
+    // Try new L1 which is like the inf but reducesum + divide by N
 
-    auto [linf_err, l1_err, l2_err] = reduce_data.value();
-    amrex::ParallelDescriptor::ReduceRealMax(linf_err);
-    amrex::ParallelDescriptor::ReduceRealSum(l1_err);
-    amrex::ParallelDescriptor::ReduceRealSum(l2_err);
-    l2_err = std::sqrt(l2_err);
+    ReduceTuple hv = reduce_data.value();
+    double linf   = amrex::get<0>(hv);
+    double num    = amrex::get<1>(hv);
+    double l2num  = amrex::get<2>(hv);
+    double sum    = amrex::get<3>(hv);
+    double wsum   = amrex::get<4>(hv);
 
-    amrex::Print() << "\n--- Advection Benchmark Verification (5th Order) ---\n" << std::scientific << std::setprecision(8)
-                   << "L1 Error:    " << l1_err << "\nL2 Error:    " << l2_err << "\nL-inf Error: " << linf_err << "\nN: " << N << "\n";
+    amrex::ParallelDescriptor::ReduceRealMax(linf);
+    amrex::ParallelDescriptor::ReduceRealSum(num);
+    amrex::ParallelDescriptor::ReduceRealSum(l2num);
+    amrex::ParallelDescriptor::ReduceRealSum(sum);
+    amrex::ParallelDescriptor::ReduceRealSum(wsum);
+
+    double l1_weighted = num / wsum;              // L1 variant for AFD
+    double l1_plain    = sum / (double)N;    // unweighted
+    double l2_weighted = std::sqrt(l2num / wsum);
+    amrex::Print() << "\n--- Advection Benchmark Verification ---\n" << std::scientific << std::setprecision(8)
+    << "L1 Error:    " << l1_plain << "\nL1 Error (Unweighted):    " << l1_plain << "\nL-inf Error: " << linf << "\nN: " << N << "\n";
     
     amrex::WriteSingleLevelPlotfile("plt_final", u, {"u"}, geom, t, step);
 }
@@ -893,28 +947,44 @@ void run_z_advection_3() {
     }
     BL_PROFILE_VAR_STOP(pmain); 
 
-    amrex::ReduceOps<amrex::ReduceOpMax, amrex::ReduceOpSum, amrex::ReduceOpSum> reduce_ops;
-    amrex::ReduceData<double, double, double> reduce_data(reduce_ops);
-    using ReduceTuple = typename amrex::ReduceData<double, double, double>::Type;
+    
+    amrex::ReduceOps<amrex::ReduceOpMax, amrex::ReduceOpSum, amrex::ReduceOpSum, amrex::ReduceOpSum, amrex::ReduceOpSum> reduce_ops;
+    amrex::ReduceData<double, double, double, double, double> reduce_data(reduce_ops);
+    using ReduceTuple = typename amrex::ReduceData<double, double, double, double, double>::Type;
 
     for (amrex::MFIter mfi(u); mfi.isValid(); ++mfi) {
-        auto const& arr = u.const_array(mfi);
-        reduce_ops.eval(mfi.validbox(), reduce_data, [=] AMREX_GPU_DEVICE(int i, int j, int k) -> ReduceTuple {
+    auto const& arr = u.const_array(mfi);
+    reduce_ops.eval(mfi.validbox(), reduce_data,
+        [=] AMREX_GPU_DEVICE(int i, int j, int k) -> ReduceTuple {
             double exact = exact_sol_z(get_z(i), t);
-            double err = std::abs(arr(i,j,k) - exact);  
-            double vol  = dz;
-            return {err, err * vol, err * err * vol};
+            double err   = std::abs(arr(i,j,k) - exact);
+
+            double r_c = get_r(i);
+            double w   = std::pow(r_c, (double)m) * dr;   // r^2 dr for m = 2
+
+            return {err, err * w, err * err * w, err, w};
         });
     }
+    // Try new L1 which is like the inf but reducesum + divide by N
 
-    auto [linf_err, l1_err, l2_err] = reduce_data.value();
-    amrex::ParallelDescriptor::ReduceRealMax(linf_err);
-    amrex::ParallelDescriptor::ReduceRealSum(l1_err);
-    amrex::ParallelDescriptor::ReduceRealSum(l2_err);
-    l2_err = std::sqrt(l2_err);
+    ReduceTuple hv = reduce_data.value();
+    double linf   = amrex::get<0>(hv);
+    double num    = amrex::get<1>(hv);
+    double l2num  = amrex::get<2>(hv);
+    double sum    = amrex::get<3>(hv);
+    double wsum   = amrex::get<4>(hv);
 
+    amrex::ParallelDescriptor::ReduceRealMax(linf);
+    amrex::ParallelDescriptor::ReduceRealSum(num);
+    amrex::ParallelDescriptor::ReduceRealSum(l2num);
+    amrex::ParallelDescriptor::ReduceRealSum(sum);
+    amrex::ParallelDescriptor::ReduceRealSum(wsum);
+
+    double l1_weighted = num / wsum;              // L1 variant for AFD
+    double l1_plain    = sum / (double)N;    // unweighted
+    double l2_weighted = std::sqrt(l2num / wsum);
     amrex::Print() << "\n--- Advection Benchmark Verification ---\n" << std::scientific << std::setprecision(8)
-    << "L1 Error:    " << l1_err << "\nL2 Error:    " << l2_err << "\nL-inf Error: " << linf_err << "\nN: " << N << "\n";
+    << "L1 Error:    " << l1_plain << "\nL1 Error (Unweighted):    " << l1_plain << "\nL-inf Error: " << linf << "\nN: " << N << "\n";
     
     amrex::WriteSingleLevelPlotfile("plt_final", u, {"u"}, geom, t, step);
 }
@@ -1058,28 +1128,44 @@ void run_z_advection_5() {
     }
     BL_PROFILE_VAR_STOP(pmain); 
 
-    amrex::ReduceOps<amrex::ReduceOpMax, amrex::ReduceOpSum, amrex::ReduceOpSum> reduce_ops;
-    amrex::ReduceData<double, double, double> reduce_data(reduce_ops);
-    using ReduceTuple = typename amrex::ReduceData<double, double, double>::Type;
+    
+    amrex::ReduceOps<amrex::ReduceOpMax, amrex::ReduceOpSum, amrex::ReduceOpSum, amrex::ReduceOpSum, amrex::ReduceOpSum> reduce_ops;
+    amrex::ReduceData<double, double, double, double, double> reduce_data(reduce_ops);
+    using ReduceTuple = typename amrex::ReduceData<double, double, double, double, double>::Type;
 
     for (amrex::MFIter mfi(u); mfi.isValid(); ++mfi) {
-        auto const& arr = u.const_array(mfi);
-        reduce_ops.eval(mfi.validbox(), reduce_data, [=] AMREX_GPU_DEVICE(int i, int j, int k) -> ReduceTuple {
+    auto const& arr = u.const_array(mfi);
+    reduce_ops.eval(mfi.validbox(), reduce_data,
+        [=] AMREX_GPU_DEVICE(int i, int j, int k) -> ReduceTuple {
             double exact = exact_sol_z(get_z(i), t);
-            double err = std::abs(arr(i,j,k) - exact);  
-            double vol  = dz;
-            return {err, err * vol, err * err * vol};
+            double err   = std::abs(arr(i,j,k) - exact);
+
+            double r_c = get_r(i);
+            double w   = std::pow(r_c, (double)m) * dr;   // r^2 dr for m = 2
+
+            return {err, err * w, err * err * w, err, w};
         });
     }
+    // Try new L1 which is like the inf but reducesum + divide by N
 
-    auto [linf_err, l1_err, l2_err] = reduce_data.value();
-    amrex::ParallelDescriptor::ReduceRealMax(linf_err);
-    amrex::ParallelDescriptor::ReduceRealSum(l1_err);
-    amrex::ParallelDescriptor::ReduceRealSum(l2_err);
-    l2_err = std::sqrt(l2_err);
+    ReduceTuple hv = reduce_data.value();
+    double linf   = amrex::get<0>(hv);
+    double num    = amrex::get<1>(hv);
+    double l2num  = amrex::get<2>(hv);
+    double sum    = amrex::get<3>(hv);
+    double wsum   = amrex::get<4>(hv);
 
-    amrex::Print() << "\n--- Advection Benchmark Verification (5th Order) ---\n" << std::scientific << std::setprecision(8)
-    << "L1 Error:    " << l1_err << "\nL2 Error:    " << l2_err << "\nL-inf Error: " << linf_err << "\nN: " << N << "\n";
+    amrex::ParallelDescriptor::ReduceRealMax(linf);
+    amrex::ParallelDescriptor::ReduceRealSum(num);
+    amrex::ParallelDescriptor::ReduceRealSum(l2num);
+    amrex::ParallelDescriptor::ReduceRealSum(sum);
+    amrex::ParallelDescriptor::ReduceRealSum(wsum);
+
+    double l1_weighted = num / wsum;              // L1 variant for AFD
+    double l1_plain    = sum / (double)N;    // unweighted
+    double l2_weighted = std::sqrt(l2num / wsum);
+    amrex::Print() << "\n--- Advection Benchmark Verification ---\n" << std::scientific << std::setprecision(8)
+    << "L1 Error:    " << l1_plain << "\nL1 Error (Unweighted):    " << l1_plain << "\nL-inf Error: " << linf << "\nN: " << N << "\n";
     
     amrex::WriteSingleLevelPlotfile("plt_final", u, {"u"}, geom, t, step);
 }
@@ -1216,28 +1302,44 @@ void run_azimuthal_advection_3() {
     }
     BL_PROFILE_VAR_STOP(pmain); 
 
-    amrex::ReduceOps<amrex::ReduceOpMax, amrex::ReduceOpSum, amrex::ReduceOpSum> reduce_ops;
-    amrex::ReduceData<double, double, double> reduce_data(reduce_ops);
-    using ReduceTuple = typename amrex::ReduceData<double, double, double>::Type;
+    
+    amrex::ReduceOps<amrex::ReduceOpMax, amrex::ReduceOpSum, amrex::ReduceOpSum, amrex::ReduceOpSum, amrex::ReduceOpSum> reduce_ops;
+    amrex::ReduceData<double, double, double, double, double> reduce_data(reduce_ops);
+    using ReduceTuple = typename amrex::ReduceData<double, double, double, double, double>::Type;
 
     for (amrex::MFIter mfi(u); mfi.isValid(); ++mfi) {
-        auto const& arr = u.const_array(mfi);
-        reduce_ops.eval(mfi.validbox(), reduce_data, [=] AMREX_GPU_DEVICE(int i, int j, int k) -> ReduceTuple {
+    auto const& arr = u.const_array(mfi);
+    reduce_ops.eval(mfi.validbox(), reduce_data,
+        [=] AMREX_GPU_DEVICE(int i, int j, int k) -> ReduceTuple {
             double exact = exact_sol_azi(get_phi(i), t);
-            double err = std::abs(arr(i,j,k) - exact);  
-            double vol = dphi; 
-            return {err, err * vol, err * err * vol};
+            double err   = std::abs(arr(i,j,k) - exact);
+
+            double r_c = get_r(i);
+            double w   = std::pow(r_c, (double)m) * dr;   // r^2 dr for m = 2
+
+            return {err, err * w, err * err * w, err, w};
         });
     }
+    // Try new L1 which is like the inf but reducesum + divide by N
 
-    auto [linf_err, l1_err, l2_err] = reduce_data.value();
-    amrex::ParallelDescriptor::ReduceRealMax(linf_err);
-    amrex::ParallelDescriptor::ReduceRealSum(l1_err);
-    amrex::ParallelDescriptor::ReduceRealSum(l2_err);
-    l2_err = std::sqrt(l2_err);
+    ReduceTuple hv = reduce_data.value();
+    double linf   = amrex::get<0>(hv);
+    double num    = amrex::get<1>(hv);
+    double l2num  = amrex::get<2>(hv);
+    double sum    = amrex::get<3>(hv);
+    double wsum   = amrex::get<4>(hv);
 
+    amrex::ParallelDescriptor::ReduceRealMax(linf);
+    amrex::ParallelDescriptor::ReduceRealSum(num);
+    amrex::ParallelDescriptor::ReduceRealSum(l2num);
+    amrex::ParallelDescriptor::ReduceRealSum(sum);
+    amrex::ParallelDescriptor::ReduceRealSum(wsum);
+
+    double l1_weighted = num / wsum;              // L1 variant for AFD
+    double l1_plain    = sum / (double)N;    // unweighted
+    double l2_weighted = std::sqrt(l2num / wsum);
     amrex::Print() << "\n--- Advection Benchmark Verification ---\n" << std::scientific << std::setprecision(8)
-    << "L1 Error:    " << l1_err << "\nL2 Error:    " << l2_err << "\nL-inf Error: " << linf_err << "\nN: " << N << "\n";
+    << "L1 Error:    " << l1_plain << "\nL1 Error (Unweighted):    " << l1_plain << "\nL-inf Error: " << linf << "\nN: " << N << "\n";
     
     amrex::WriteSingleLevelPlotfile("plt_final", u, {"u"}, geom, t, step);
 }
@@ -1385,28 +1487,44 @@ void run_azimuthal_advection_5() {
     }
     BL_PROFILE_VAR_STOP(pmain); 
 
-    amrex::ReduceOps<amrex::ReduceOpMax, amrex::ReduceOpSum, amrex::ReduceOpSum> reduce_ops;
-    amrex::ReduceData<double, double, double> reduce_data(reduce_ops);
-    using ReduceTuple = typename amrex::ReduceData<double, double, double>::Type;
+    
+    amrex::ReduceOps<amrex::ReduceOpMax, amrex::ReduceOpSum, amrex::ReduceOpSum, amrex::ReduceOpSum, amrex::ReduceOpSum> reduce_ops;
+    amrex::ReduceData<double, double, double, double, double> reduce_data(reduce_ops);
+    using ReduceTuple = typename amrex::ReduceData<double, double, double, double, double>::Type;
 
     for (amrex::MFIter mfi(u); mfi.isValid(); ++mfi) {
-        auto const& arr = u.const_array(mfi);
-        reduce_ops.eval(mfi.validbox(), reduce_data, [=] AMREX_GPU_DEVICE(int i, int j, int k) -> ReduceTuple {
+    auto const& arr = u.const_array(mfi);
+    reduce_ops.eval(mfi.validbox(), reduce_data,
+        [=] AMREX_GPU_DEVICE(int i, int j, int k) -> ReduceTuple {
             double exact = exact_sol_azi(get_phi(i), t);
-            double err = std::abs(arr(i,j,k) - exact);  
-            double vol = dphi; 
-            return {err, err * vol, err * err * vol};
+            double err   = std::abs(arr(i,j,k) - exact);
+
+            double r_c = get_r(i);
+            double w   = std::pow(r_c, (double)m) * dr;   // r^2 dr for m = 2
+
+            return {err, err * w, err * err * w, err, w};
         });
     }
+    // Try new L1 which is like the inf but reducesum + divide by N
 
-    auto [linf_err, l1_err, l2_err] = reduce_data.value();
-    amrex::ParallelDescriptor::ReduceRealMax(linf_err);
-    amrex::ParallelDescriptor::ReduceRealSum(l1_err);
-    amrex::ParallelDescriptor::ReduceRealSum(l2_err);
-    l2_err = std::sqrt(l2_err);
+    ReduceTuple hv = reduce_data.value();
+    double linf   = amrex::get<0>(hv);
+    double num    = amrex::get<1>(hv);
+    double l2num  = amrex::get<2>(hv);
+    double sum    = amrex::get<3>(hv);
+    double wsum   = amrex::get<4>(hv);
 
-    amrex::Print() << "\n--- Advection Benchmark Verification (5th Order) ---\n" << std::scientific << std::setprecision(8)
-    << "L1 Error:    " << l1_err << "\nL2 Error:    " << l2_err << "\nL-inf Error: " << linf_err << "\nN: " << N << "\n";
+    amrex::ParallelDescriptor::ReduceRealMax(linf);
+    amrex::ParallelDescriptor::ReduceRealSum(num);
+    amrex::ParallelDescriptor::ReduceRealSum(l2num);
+    amrex::ParallelDescriptor::ReduceRealSum(sum);
+    amrex::ParallelDescriptor::ReduceRealSum(wsum);
+
+    double l1_weighted = num / wsum;              // L1 variant for AFD
+    double l1_plain    = sum / (double)N;    // unweighted
+    double l2_weighted = std::sqrt(l2num / wsum);
+    amrex::Print() << "\n--- Advection Benchmark Verification ---\n" << std::scientific << std::setprecision(8)
+    << "L1 Error:    " << l1_plain << "\nL1 Error (Unweighted):    " << l1_plain << "\nL-inf Error: " << linf << "\nN: " << N << "\n";
     
     amrex::WriteSingleLevelPlotfile("plt_final", u, {"u"}, geom, t, step);
 }
