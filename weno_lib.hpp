@@ -111,9 +111,9 @@ void weno_ao_5_3_interpolation(double um2, double um1, double u0, double up1, do
 
     // Nonlinear weights
     double t5 = tau5/(b5+eps); double w5 = g5 * (1.0 + t5*t5);
-    double t1 = tau3/(b1+eps); double w1 = g1 * (1.0 + t1*t1);
-    double t2 = tau3/(b2+eps); double w2 = g2 * (1.0 + t2*t2);
-    double t3 = tau3/(b3+eps); double w3 = g3 * (1.0 + t3*t3);
+    double t1 = tau5/(b1+eps); double w1 = g1 * (1.0 + t1*t1);
+    double t2 = tau5/(b2+eps); double w2 = g2 * (1.0 + t2*t2);
+    double t3 = tau5/(b3+eps); double w3 = g3 * (1.0 + t3*t3);
 
     double ws = w5+w1+w2+w3;
     double wb5 = w5/ws; double wb1 = w1/ws; double wb2 = w2/ws; double wb3 = w3/ws;
