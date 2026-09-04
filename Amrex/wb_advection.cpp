@@ -274,7 +274,7 @@ void run_scheme_5(bool use_wb, const amrex::BoxArray& ba,
         amrex::MultiFab::Saxpy(u, 0.00683325884039, u0, 0, 0, 1, 0);
         amrex::MultiFab::Saxpy(u, 0.51723167208978, u2, 0, 0, 1, 0);
         amrex::MultiFab::Saxpy(u, 0.12759831133288, u3, 0, 0, 1, 0);        
-        amrex::MultiFab::Saxpy(u, (1.0-0.00683325884039-0.51723167208978-0.12759831133288), u4, 0, 0, 1, 0);
+        amrex::MultiFab::Saxpy(u, (1.0-0.00683325884039-0.51723167208978-0.12759831133288), u4, 0, 0, 1, 0); // so that they sum to exactly 1. Value from Ruuth is 0.34833675773694
         amrex::MultiFab::Saxpy(u, dt * 0.08460416338212, rhs_u3, 0, 0, 1, 0);
         amrex::MultiFab::Saxpy(u, dt * 0.22600748319395, rhs, 0, 0, 1, 0);
         apply_boundaries(u, geom);
