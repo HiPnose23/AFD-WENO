@@ -1,15 +1,12 @@
-// Note:
 // Balance law solved here:
 //
-//   CARTESIAN   d_t u + d_z( alpha_v u )                 = S(u,z)
-//   RADIAL      d_t u + (1/r^m) d_r( r^(m+1) alpha_v u ) = S(u,r)
+// d_t u + (1/r^m) d_r( r^(m+1) alpha_v u ) = S(u,r)
 //
 // with the source chosen so that a prescribed profile is an exact steady state:
 //
-//   CARTESIAN   S(u,z) = -k_eq u                        =>  u_e(z) = exp(-k_eq z / alpha_v)
-//   RADIAL      S(u,r) = alpha_v[(m+1) - 2 k_eq r^2] u  =>  u_e(r) = exp(-k_eq r^2)
+// S(u,r) = alpha_v[(m+1) - 2 k_eq r^2] u  =>  u_e(r) = exp(-k_eq r^2)
 //
-// In both cases S is proportional to u, so S(u)/S(u_e) = u/u_e.
+// S is proportional to u, so S(u)/S(u_e) = u/u_e.
 //
 // =============================================================================
 
