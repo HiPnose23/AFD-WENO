@@ -12,13 +12,6 @@
 // In both cases S is proportional to u, so S(u)/S(u_e) = u/u_e.
 //
 // =============================================================================
-// How to use
-// =============================================================================
-// Set mode to either Cartesian or Radial
-// Set m if mode is RADIAL. 1: Cylindrical case, 2: Spherical case
-// PERT_AMP is the amplitutde of the gaussian perturbation, PERT_X is where it is centered
-// This code will produce the results for the non-WB AND the WB scheme.
-// ==============================================================================
 
 #include <AMReX.H>
 #include <AMReX_Print.H>
@@ -38,10 +31,7 @@
 // ==============================================================================
 // CONFIG
 // ==============================================================================
-enum class Mode { CARTESIAN, RADIAL };
-constexpr Mode TEST_MODE = Mode::RADIAL;
-
-constexpr int m = 2; // 1 for Cylindrical, 2 for Spherical (RADIAL only)
+constexpr int m = 2; // 0 for Cartesian, 1 for Cylindrical, 2 for Spherical 
 
 constexpr int N = 128;
 constexpr double alpha_v = 1.0;
@@ -50,10 +40,11 @@ constexpr int p_r = (m == 2) ? 1 : (m + 1);
 
 constexpr double k_eq = 5.0;
 
-constexpr double PERT_AMP = 1.0e-9;
+constexpr double PERT_AMP = 0.0;
+
 constexpr double PERT_X = 0.5;
 
-constexpr double T_END = 0.3;
+constexpr double T_END = 1.0;
 
 // GRID
 const double dx = 2.0 / N;
@@ -64,19 +55,11 @@ inline AMREX_GPU_DEVICE double get_x(int i) { return 0.0 + (i + 0.5) * dx; }
 // EQUILIBRIUM AND SOURCE
 // ==============================================================================
 inline AMREX_GPU_DEVICE double u_equilibrium(double x) {
-    if constexpr (TEST_MODE == Mode::CARTESIAN) {
-        return std::exp(-k_eq * x / alpha_v);
-    } else {
-        return std::exp(-k_eq * x * x);
-    }
+    return std::exp(-k_eq * x * x);
 }
 
 inline AMREX_GPU_DEVICE double source_S(double u, double x) {
-    if constexpr (TEST_MODE == Mode::CARTESIAN) {
-        return -k_eq * u;
-    } else {
-        return alpha_v * ((m + 1.0) - 2.0 * k_eq * x * x) * u;
-    }
+    return alpha_v * ((m + 1.0) - 2.0 * k_eq * x * x) * u;
 }
 
 inline AMREX_GPU_DEVICE double source_ratio(double u, double u_e) {
@@ -105,13 +88,10 @@ void apply_boundaries(amrex::MultiFab& u, const amrex::Geometry& geom) {
 
         amrex::ParallelFor(gbx, [=] AMREX_GPU_DEVICE(int i, int j, int k) {
             if (i < dom_lo) {
-                if constexpr (TEST_MODE == Mode::RADIAL) {
-                    int dist = dom_lo - i;
-                    arr(i,j,k) = arr(dom_lo + dist - 1, j, k);
-                } else {
-                    arr(i,j,k) = u_equilibrium(get_x(i));
-                }
-            } else if (i > dom_hi) {
+                int dist = dom_lo - i;
+                arr(i,j,k) = arr(dom_lo + dist - 1, j, k);
+            } 
+            else if (i > dom_hi) {
                 arr(i,j,k) = u_equilibrium(get_x(i));
             }
         });
@@ -130,11 +110,7 @@ void compute_flux_5(const amrex::MultiFab& u, amrex::MultiFab& flux, const amrex
         amrex::ParallelFor(flux_box, [=] AMREX_GPU_DEVICE(int i, int j, int k) {
             double w_L, w_R, dwdx;
             auto point_f = [&](int idx) {
-                if constexpr (TEST_MODE == Mode::CARTESIAN) {
-                    return alpha_v * u_arr(idx,j,k);
-                } else {
-                    return std::pow(get_x(idx), p_r) * alpha_v * u_arr(idx,j,k);
-                }
+                return std::pow(get_x(idx), p_r) * alpha_v * u_arr(idx,j,k);               
             };
 
             weno_ao_5_3_interpolation(u_arr(i-2,j,k), u_arr(i-1,j,k), u_arr(i,j,k), u_arr(i+1,j,k), u_arr(i+2,j,k), dx, w_L, w_R, dwdx);
@@ -144,12 +120,9 @@ void compute_flux_5(const amrex::MultiFab& u, amrex::MultiFab& flux, const amrex
 
             double corr = -(dx * dx / 24.0) * d2 + (7.0 * dx * dx * dx * dx / 5760.0) * d4;
 
-            if constexpr (TEST_MODE == Mode::CARTESIAN) {
-                flx(i,j,k,0) = alpha_v * w_R + corr;
-            } else {
-                double x_face = get_x(i) + 0.5 * dx;
-                flx(i,j,k,0) = std::pow(x_face, p_r) * alpha_v * w_R + corr;
-            }
+            double x_face = get_x(i) + 0.5 * dx;
+            flx(i,j,k,0) = std::pow(x_face, p_r) * alpha_v * w_R + corr;
+            
         });
     }
 }
@@ -167,9 +140,7 @@ void apply_operator_5(const amrex::MultiFab& u, amrex::MultiFab& D, const amrex:
         amrex::ParallelFor(mfi.validbox(), [=] AMREX_GPU_DEVICE(int i, int j, int k) {
             double div_F = (f_act(i,j,k,0) - f_act(i-1,j,k,0)) / dx;
 
-            if constexpr (TEST_MODE == Mode::CARTESIAN) {
-                d_arr(i,j,k) = div_F;
-            } else if constexpr (m == 2) {
+            if constexpr (m == 2) {
                 d_arr(i,j,k) = div_F + m * alpha_v * u_arr(i,j,k);
             } else {
                 d_arr(i,j,k) = (f_act(i,j,k,0) - f_act(i-1,j,k,0)) / (std::pow(get_x(i), m) * dx);
@@ -225,11 +196,10 @@ void deviation_norms(const amrex::MultiFab& u, const amrex::BoxArray& ba,
         amrex::ParallelFor(mfi.validbox(), [=] AMREX_GPU_DEVICE(int i, int j, int k) {
             double err = std::abs(u_arr(i,j,k) - u_equilibrium(get_x(i)));
             double vol = dx;
-            if constexpr (TEST_MODE == Mode::RADIAL) {
-                double x_lo = i * dx;
-                double x_hi = (i + 1) * dx;
-                vol = (std::pow(x_hi, m + 1.0) - std::pow(x_lo, m + 1.0)) / (m + 1.0);
-            }
+            double x_lo = i * dx;
+            double x_hi = (i + 1) * dx;
+            vol = (std::pow(x_hi, m + 1.0) - std::pow(x_lo, m + 1.0)) / (m + 1.0);
+
             d_arr(i,j,k,0) = err;
             d_arr(i,j,k,1) = err * vol;
         });
@@ -267,7 +237,7 @@ void run_scheme_5(bool use_wb, const amrex::BoxArray& ba,
     apply_boundaries(u, geom);
  
     double t = 0.0;
-    double c_speed = (TEST_MODE == Mode::CARTESIAN) ? alpha_v : (alpha_v * 2.0);
+    double c_speed = alpha_v * 2.0;
     double dt = 0.4 * dx / c_speed;
     int step = 0;
 
@@ -307,7 +277,7 @@ void run_scheme_5(bool use_wb, const amrex::BoxArray& ba,
         amrex::MultiFab::Saxpy(u, 0.00683325884039, u0, 0, 0, 1, 0);
         amrex::MultiFab::Saxpy(u, 0.51723167208978, u2, 0, 0, 1, 0);
         amrex::MultiFab::Saxpy(u, 0.12759831133288, u3, 0, 0, 1, 0);        
-        amrex::MultiFab::Saxpy(u, 0.34833675773694, u4, 0, 0, 1, 0);
+        amrex::MultiFab::Saxpy(u, (1.0-0.00683325884039-0.51723167208978-0.12759831133288), u4, 0, 0, 1, 0);
         amrex::MultiFab::Saxpy(u, dt * 0.08460416338212, rhs_u3, 0, 0, 1, 0);
         amrex::MultiFab::Saxpy(u, dt * 0.22600748319395, rhs, 0, 0, 1, 0);
         apply_boundaries(u, geom);
@@ -356,9 +326,7 @@ int main(int argc, char* argv[]) {
     amrex::Initialize(argc, argv);
     {       
         amrex::Print() << "Initializing AMReX Well-Balanced Test (5th Order)...\n";
-        amrex::Print() << "Mode: " << ((TEST_MODE == Mode::CARTESIAN) ? "Cartesian (z)" : "Radial") << "\n";
-        if constexpr (TEST_MODE == Mode::RADIAL)
-            amrex::Print() << "Geometry: " << ((m == 1) ? "Cylindrical (m=1)" : "Spherical (m=2)") << "\n";
+        amrex::Print() << "Geometry: " << ((m == 0) ? "Cartesian (m=0)" : ((m == 1) ? "Cylindrical (m=1)" : "Spherical (m=2)")) << "\n"; 
         amrex::Print() << "N = " << N << "  k_eq = " << k_eq << "  perturbation = " << PERT_AMP << "\n";
 
         amrex::Box domain(amrex::IntVect(AMREX_D_DECL(0,0,0)), amrex::IntVect(AMREX_D_DECL(N-1,0,0)));

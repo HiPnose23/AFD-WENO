@@ -112,13 +112,9 @@ void compute_flux_rad(const amrex::MultiFab& u, amrex::MultiFab& flux, const amr
             double f_face = w_R; 
             
 
-            double d2f_r, d4f_r, d2dr2; // We only care about d2dr2 right now! remove the others in later versions
+            double d2f_r, d4f_r, d2dr2; // We only care about d2dr2 right now! 
             weno_ao_43_boundary(point_f(i-1), point_f(i), point_f(i+1), point_f(i+2), dr, d2f_r, d4f_r, d2dr2);
-           /* double d2f_r = ( 
-                - (5.0/48.0) * point_f(i-2) + (13.0/16.0) * point_f(i-1)
-                - (17.0/24.0)* point_f(i)   - (17.0/24.0) * point_f(i+1)
-                + (13.0/16.0)* point_f(i+2) - (5.0/48.0)  * point_f(i+3)
-            ) / (dr*dr);*/
+
             double r_face = get_r(i) + 0.5 * dr;
             flx(i,j,k,0) = std::pow(r_face,m+1)*alpha_v*f_face - (dr*dr/24.0) * d2dr2;
         });
@@ -216,7 +212,6 @@ void run_radial_advection_3() {
             return {err, err * w, err * err * w, err, w};
         });
     }
-    // Try new L1 which is like the inf but reducesum + divide by N
 
     ReduceTuple hv = reduce_data.value();
     double linf   = amrex::get<0>(hv);
@@ -410,7 +405,6 @@ void run_radial_advection_5() {
             return {err, err * w, err * err * w, err, w};
         });
     }
-    // Try new L1 which is like the inf but reducesum + divide by N
 
     ReduceTuple hv = reduce_data.value();
     double linf   = amrex::get<0>(hv);
@@ -503,13 +497,9 @@ void compute_flux_mer(const amrex::MultiFab& u, amrex::MultiFab& flux, const amr
             
             double f_face = w_R; 
             
-            double d2f_theta, d4f_theta, d2dtheta2; // We only care about d2dtheta2 right now! remove the others in later versions
+            double d2f_theta, d4f_theta, d2dtheta2; // We only care about d2dtheta2 right now! 
             weno_ao_43_boundary(point_f(i-1), point_f(i), point_f(i+1), point_f(i+2), dtheta, d2f_theta, d4f_theta, d2dtheta2);
-            /*double d2f_r = (
-                - (5.0/48.0) * point_f(i-2) + (13.0/16.0) * point_f(i-1)
-                - (17.0/24.0)* point_f(i)   - (17.0/24.0) * point_f(i+1)
-                + (13.0/16.0)* point_f(i+2) - (5.0/48.0)  * point_f(i+3)
-            ) / (dtheta*dtheta); */
+
             
             double theta_face = get_theta(i) + 0.5 * dtheta;
             flx(i,j,k,0) = std::sin(theta_face) * (alpha_v * theta_face) * f_face - (dtheta*dtheta/24.0) * d2dtheta2;
@@ -798,7 +788,7 @@ void run_meridional_advection_5() {
             return {err, err * w, err * err * w, err, w};
         });
     }
-    // Try new L1 which is like the inf but reducesum + divide by N
+
 
     ReduceTuple hv = reduce_data.value();
     double linf   = amrex::get<0>(hv);
@@ -863,12 +853,9 @@ void compute_flux_z(const amrex::MultiFab& u, amrex::MultiFab& flux, const amrex
                 dz, w_L, w_R, dwdz);
             
             double f_face = w_R;
-            double d2f_z, d4f_z, d2dz2; // We only care about d2dz2 right now! remove the others in later versions
+            double d2f_z, d4f_z, d2dz2; // We only care about d2dz2 right now! 
             weno_ao_43_boundary(point_f(i-1), point_f(i), point_f(i+1), point_f(i+2), dz, d2f_z, d4f_z, d2dz2);
 
-            /*double d2f_z = (- (5.0/48.0)*point_f(i-2) + (13.0/16.0)*point_f(i-1)
-                            - (17.0/24.0)*point_f(i)  - (17.0/24.0)*point_f(i+1)
-                            + (13.0/16.0)*point_f(i+2) - (5.0/48.0)*point_f(i+3)) / (dz*dz); */
                             
             flx(i,j,k,0) = alpha_v * f_face - (dz*dz/24.0) * d2dz2;
         });
@@ -965,7 +952,6 @@ void run_z_advection_3() {
             return {err, err * w, err * err * w, err, w};
         });
     }
-    // Try new L1 which is like the inf but reducesum + divide by N
 
     ReduceTuple hv = reduce_data.value();
     double linf   = amrex::get<0>(hv);
@@ -1146,7 +1132,6 @@ void run_z_advection_5() {
             return {err, err * w, err * err * w, err, w};
         });
     }
-    // Try new L1 which is like the inf but reducesum + divide by N
 
     ReduceTuple hv = reduce_data.value();
     double linf   = amrex::get<0>(hv);
@@ -1216,12 +1201,8 @@ void compute_flux_azi(const amrex::MultiFab& u, amrex::MultiFab& flux, const amr
                 dphi, w_L, w_R, dwdphi);
             
             double f_face = w_R;
-            double d2f_phi, d4f_phi, d2dphi2; // We only care about d2dphi2 right now! remove the others in later versions
+            double d2f_phi, d4f_phi, d2dphi2; // We only care about d2dphi2 right now!
             weno_ao_43_boundary(point_f(i-1), point_f(i), point_f(i+1), point_f(i+2), dphi, d2f_phi, d4f_phi, d2dphi2);
-
-            /*double d2f_phi = (- (5.0/48.0)*point_f(i-2) + (13.0/16.0)*point_f(i-1)
-                              - (17.0/24.0)*point_f(i)  - (17.0/24.0)*point_f(i+1)
-                              + (13.0/16.0)*point_f(i+2) - (5.0/48.0)*point_f(i+3)) / (dphi*dphi); */
                             
             flx(i,j,k,0) = alpha_v * f_face - (dphi*dphi/24.0) * d2dphi2;
         });
@@ -1320,7 +1301,6 @@ void run_azimuthal_advection_3() {
             return {err, err * w, err * err * w, err, w};
         });
     }
-    // Try new L1 which is like the inf but reducesum + divide by N
 
     ReduceTuple hv = reduce_data.value();
     double linf   = amrex::get<0>(hv);
@@ -1505,7 +1485,6 @@ void run_azimuthal_advection_5() {
             return {err, err * w, err * err * w, err, w};
         });
     }
-    // Try new L1 which is like the inf but reducesum + divide by N
 
     ReduceTuple hv = reduce_data.value();
     double linf   = amrex::get<0>(hv);

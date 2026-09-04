@@ -240,9 +240,7 @@ void compute_flux_R_5(const amrex::MultiFab& u, amrex::MultiFab& flux, const amr
 
             double s_L = std::min(V_L[1] - cs_L, V_R[1] - cs_R);
             double s_R = std::max(V_L[1] + cs_L, V_R[1] + cs_R);
-           /* double s_max = std::max(std::abs(s_L), std::abs(s_R));
-            s_L = -s_max;
-            s_R = s_max; */
+
 
             double F_HLL[4];
             if (s_L >= 0.0) {
@@ -342,9 +340,7 @@ void compute_flux_Z_5(const amrex::MultiFab& u, amrex::MultiFab& flux, const amr
 
             double s_L = std::min(V_L[2] - cs_L, V_R[2] - cs_R);
             double s_R = std::max(V_L[2] + cs_L, V_R[2] + cs_R);
-            /*double s_max = std::max(std::abs(s_L), std::abs(s_R));
-            s_L = -s_max;
-            s_R = s_max;*/
+
 
             double F_HLL[4];
             if (s_L >= 0.0) {

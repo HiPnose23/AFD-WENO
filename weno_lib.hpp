@@ -178,16 +178,6 @@ void weno_ao_43_boundary(double fm1, double f0, double f1, double f2, double dx,
     double ws = wc + w1 + w2;
     wc /= ws; w1 /= ws; w2 /= ws;
 
-  /*  double d1_c  = fx_c  + fx3_c * (-3.0/20.0);
-    double d1_1  = fx1;
-    double d1_2  = fx2;
-    double d3_c  = 6.0 * fx3_c;
-
-    d1dx = ((wc/g_c)*(d1_c - g1*d1_1 - g2*d1_2) + w1*d1_1 + w2*d1_2) / dx;
-    d3dx = ((wc/g_c) * d3_c) / dx; */
-
-    // attempt to staright away get second derivative from the flux centres here:
-
     double d2_c  = 2.0 * fx2_c;
     double d2_1  = 2.0 * fx21;
     double d2_2  = 2.0 * fx22;
@@ -199,7 +189,7 @@ void weno_ao_63_boundary(double fm2, double fm1, double f0, double f1, double f2
                          double dx, double& d2dx2, double& d4dx4) 
 {
     double eps = 1e-36;
-    double Hi = 0.85; // changing this to 1.0 solves the order issue for spherical coords
+    double Hi = 0.85; 
 
     // Variables to avoid writing coefficients twice 
     double sum0 = f1 + f0;
@@ -268,22 +258,6 @@ void weno_ao_63_boundary(double fm2, double fm1, double f0, double f1, double f2
     
     d4dx4 = ((wc/g_c) * d4_c) / (dx*dx*dx*dx);
 
-    /*
-
-    // L1'(0) = 1, L3'(0) = -3/20, L5'(0) = 5/336
-    double d1_c = fx_c - (3.0/20.0)*fx3_c + (5.0/336.0)*fx5_c;
-    
-    // L3'''(0) = 6, L5'''(0) = -5/3
-    double d3_c = 6.0 * fx3_c - (5.0/3.0)*fx5_c;
-    
-    // L5'''''(0) = 120
-    double d5_c = 120.0 * fx5_c;
-
-    d1dx = ((wc/g_c)*(d1_c - g1*fx1 - g2*fx2) + w1*fx1 + w2*fx2) / dx;
-    d3dx = ((wc/g_c)*d3_c) / (dx*dx*dx);
-    d5dx = ((wc/g_c)*d5_c) / (dx*dx*dx*dx*dx);
-    
-    */
 }
 
 #endif
